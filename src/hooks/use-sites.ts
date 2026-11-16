@@ -19,6 +19,11 @@ export type Folder = {
   sites: Site[]
 }
 
+/** Where each shipped site lives before the user moves it. */
+const shippedHome = new Map(
+  shippedSections.flatMap((section) => section.sites.map((site) => [site.id, section.id as string])),
+)
+
 function toSite(entry: AddedSite): Site {
   return {
     id: entry.id,
@@ -60,19 +65,38 @@ export function useSites() {
       base: [] as Site[],
     }))
 
-    return [...shipped, ...custom].map((folder) => {
-      const kept = folder.base
+    const everyFolder = [...shipped, ...custom]
+    const exists = new Set(everyFolder.map((folder) => folder.id))
+    // A move into a folder that has since been deleted sends the site home.
+    const filedUnder = (site: Site, home: string) => {
+      const target = store.moved[site.id]
+      return target && exists.has(target) ? target : home
+    }
+    const patched = (site: Site) => {
+      const patch = store.overrides[site.id]
+      return patch ? { ...site, ...patch } : site
+    }
+    const visibleShipped = shipped.flatMap((folder) =>
+      folder.base
         .filter((site) => !store.hidden.includes(site.id))
-        .map((site) => {
-          const patch = store.overrides[site.id]
-          return patch ? { ...site, ...patch } : site
-        })
+        .map((site) => ({ site: patched(site), folder: filedUnder(site, folder.id), home: folder.id })),
+    )
+
+    return everyFolder.map((folder) => {
+      const kept = visibleShipped
+        .filter((entry) => entry.folder === folder.id && entry.home === folder.id)
+        .map((entry) => entry.site)
+      // Moved-in sites lead, like added ones: the one you just filed is visible without paging.
+      const movedIn = visibleShipped
+        .filter((entry) => entry.folder === folder.id && entry.home !== folder.id)
+        .map((entry) => entry.site)
+        .reverse()
       // Newest first, so a site you just added is visible without paging.
       const added = store.added
         .filter((entry) => entry.folder === folder.id)
         .map(toSite)
         .reverse()
-      const all = [...added, ...kept]
+      const all = [...added, ...movedIn, ...kept]
 
       const order = store.order[folder.id]
       const sites = order
@@ -143,13 +167,46 @@ export function useSites() {
     [update],
   )
 
+  /**
+   * Files a site under another folder. Shipped sites keep their entry in code
+   * and only remember the new home; the site leaves every manual order and
+   * leads the target's, so it shows up once, on the first page.
+   */
+  const moveSite = useCallback(
+    (id: string, folderId: string) => {
+      update((current) => {
+        const order = Object.fromEntries(
+          Object.entries(current.order).map(([key, ids]) => [key, ids.filter((item) => item !== id)]),
+        )
+        if (order[folderId]) order[folderId] = [id, ...order[folderId]]
+
+        if (current.added.some((entry) => entry.id === id)) {
+          return {
+            ...current,
+            added: current.added.map((entry) =>
+              entry.id === id ? { ...entry, folder: folderId } : entry,
+            ),
+            order,
+          }
+        }
+
+        const home = shippedHome.get(id)
+        if (!home) return current
+        const { [id]: _previous, ...moved } = current.moved
+        return { ...current, moved: folderId === home ? moved : { ...moved, [id]: folderId }, order }
+      })
+    },
+    [update],
+  )
+
   const removeSite = useCallback(
     (id: string) => {
       update((current) => {
         if (current.added.some((entry) => entry.id === id)) {
           return { ...current, added: current.added.filter((entry) => entry.id !== id) }
         }
-        return { ...current, hidden: [...new Set([...current.hidden, id])] }
+        const { [id]: _previous, ...moved } = current.moved
+        return { ...current, hidden: [...new Set([...current.hidden, id])], moved }
       })
     },
     [update],
@@ -188,10 +245,15 @@ export function useSites() {
     (folderId: string) => {
       update((current) => {
         const { [folderId]: _dropped, ...order } = current.order
+        // Shipped sites filed here go back to where they came from.
+        const moved = Object.fromEntries(
+          Object.entries(current.moved).filter(([, target]) => target !== folderId),
+        )
         return {
           ...current,
           folders: current.folders.filter((folder) => folder.id !== folderId),
           added: current.added.filter((entry) => entry.folder !== folderId),
+          moved,
           order,
         }
       })
@@ -207,6 +269,7 @@ export function useSites() {
   const isCustomized =
     store.added.length > 0 ||
     store.hidden.length > 0 ||
+    Object.keys(store.moved).length > 0 ||
     store.folders.length > 0 ||
     Object.keys(store.overrides).length > 0 ||
     Object.keys(store.order).length > 0
@@ -216,6 +279,7 @@ export function useSites() {
     allSites,
     addSite,
     editSite,
+    moveSite,
     removeSite,
     reorderFolder,
     addFolder,

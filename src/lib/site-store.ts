@@ -25,6 +25,8 @@ export type SiteStoreData = {
   overrides: Record<string, SitePatch>
   /** Shipped sites the user removed. */
   hidden: string[]
+  /** Shipped sites the user filed under another folder: site id to folder id. */
+  moved: Record<string, string>
   /** Folders the user created. */
   folders: CustomFolder[]
   /** Manual order per folder; ids not listed keep their natural position. */
@@ -37,6 +39,7 @@ export const EMPTY_SITE_STORE: SiteStoreData = {
   added: [],
   overrides: {},
   hidden: [],
+  moved: {},
   folders: [],
   order: {},
 }
@@ -68,6 +71,8 @@ export function readSiteStore(): SiteStoreData {
               url,
               folder,
               description: typeof entry.description === "string" ? entry.description : "",
+              // Dropping this here used to turn every custom icon back into a letter on reload.
+              ...(typeof entry.icon === "string" && entry.icon ? { icon: entry.icon } : {}),
             },
           ]
         })
@@ -88,6 +93,12 @@ export function readSiteStore(): SiteStoreData {
     const hidden = Array.isArray(parsed.hidden)
       ? parsed.hidden.filter((id): id is string => typeof id === "string")
       : []
+    const moved: Record<string, string> = {}
+    if (isRecord(parsed.moved)) {
+      for (const [id, folder] of Object.entries(parsed.moved)) {
+        if (typeof folder === "string") moved[id] = folder
+      }
+    }
     const order: Record<string, string[]> = {}
     if (isRecord(parsed.order)) {
       for (const [folder, ids] of Object.entries(parsed.order)) {
@@ -97,7 +108,7 @@ export function readSiteStore(): SiteStoreData {
       }
     }
 
-    return { added, overrides, hidden, folders, order }
+    return { added, overrides, hidden, moved, folders, order }
   } catch {
     return EMPTY_SITE_STORE
   }
