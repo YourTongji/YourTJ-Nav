@@ -193,7 +193,6 @@ export default function App() {
                 <div className="mt-4">
                   {folder ? (
                     <SiteGrid
-                      key={folder.id}
                       folder={folder}
                       onReorder={(ids) => sites.reorderFolder(folder.id, ids)}
                       onAdd={() => addSite(folder.id)}
