@@ -42,6 +42,7 @@ components/  界面。只有这里碰 DOM，data 和 lib 不认识 React
 | `yourtj-nav-pins` | localStorage | 置顶的站点 id 顺序 |
 | `yourtj-nav-recent` | localStorage | 最近访问，最多 12 条 |
 | `yourtj-nav-folder` | localStorage | 当前分类 |
+| `yourtj-nav-view` | localStorage | `full` / `minimal`（简洁模式） |
 | `yourtj-nav-engine` | localStorage | 搜索引擎 |
 | `yourtj-nav-search-width` | localStorage | 搜索框宽度 |
 | `yourtj-nav-quote` | localStorage | 一言开关 |

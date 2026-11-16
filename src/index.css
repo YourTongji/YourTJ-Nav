@@ -591,6 +591,17 @@
   The bar is outdented by its own inset, so the logo and the last chip sit on
   the content's edges rather than 10px inside them.
 */
+/* 简洁模式 has no hero to centre and rows instead of tiles: it takes the room. */
+[data-view="minimal"] {
+  --page-max: 1440px;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
 .page-frame {
   width: 100%;
   max-width: var(--page-max);

@@ -23,15 +23,30 @@ export function useHeaderHandoff({
   header,
   hero,
   search,
+  enabled = true,
 }: {
   header: RefObject<HTMLElement | null>
   /** The hero section: its first child is the first thing that can go under the bar. */
   hero: RefObject<HTMLElement | null>
   search: RefObject<HTMLElement | null>
+  /** Off when there is no hero to hand over from: the bar is simply floating, with the search in it. */
+  enabled?: boolean
 }) {
-  const [handedOff, setHandedOff] = useState(false)
+  const [handedOff, setHandedOff] = useState(!enabled)
 
   useEffect(() => {
+    const bar = header.current
+    if (!enabled) {
+      if (bar) {
+        bar.style.setProperty("--float", "1")
+        bar.style.setProperty("--handoff", "1")
+        bar.dataset.float = "true"
+        bar.dataset.handoff = "true"
+      }
+      setHandedOff(true)
+      return
+    }
+
     let frame = 0
 
     const measure = () => {
@@ -72,7 +87,7 @@ export function useHeaderHandoff({
       observer.disconnect()
       if (frame) window.cancelAnimationFrame(frame)
     }
-  }, [header, hero, search])
+  }, [header, hero, search, enabled])
 
   return handedOff
 }
