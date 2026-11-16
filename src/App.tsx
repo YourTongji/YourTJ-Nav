@@ -295,6 +295,12 @@ export default function App() {
               description: hostOf(value.url),
               icon: value.icon,
             })
+            // The form's folder is where the site was opened from; a new pick moves it,
+            // and the view follows so the result is visible, as it does after adding.
+            if (draft && value.folder !== draft.folder) {
+              sites.moveSite(value.id, value.folder)
+              setActiveFolder(value.folder)
+            }
           } else {
             sites.addSite({
               title: value.title,
