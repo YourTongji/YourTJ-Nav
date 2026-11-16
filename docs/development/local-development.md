@@ -54,9 +54,10 @@ VITE_BASE=/YourTJ-Nav/ npm run build
 **样式改了没生效。** Vite 的模块缓存偶尔会滞后，用脚本批量改 CSS 之后更容易遇到。
 重启 `npm run dev`。
 
-**面板或菜单一打开，页面横向抖一下。** 说明某个 Radix 组件用了 `modal` 默认值。
-modal 会锁 body 滚动，滚动条消失后页面变宽，固定定位的壁纸跟着重新 `cover`。
-所有菜单都要写 `modal={false}`，`html` 上的 `scrollbar-gutter: stable` 是兜底。
+**面板或菜单一打开，页面横向抖一下。** Radix 的 modal 层（右键菜单、对话框）锁滚动时会隐藏 body 溢出，
+再补一段滚动条宽度的 `margin-right`。溢出传到视口后 `scrollbar-gutter: stable` 留的槽跟着消失，
+margin 只补回一半，居中的页面和 `cover` 壁纸就会横移。`src/index.css` 里有一条全局规则，改成锁 `html`、
+保留槽位并去掉 margin；看到抖动先确认这条规则还在。下拉菜单和设置面板不需要锁滚动，照旧写 `modal={false}`。
 
 **本地正常，线上玻璃全没了。** 检查构建产物里的 `backdrop-filter`。手写 `-webkit-backdrop-filter`
 会让 LightningCSS 去掉标准属性，浏览器只看到前缀版时可能算成 `none`。只写标准属性，前缀交给构建工具。

@@ -930,6 +930,23 @@
     scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 
+  /*
+    Modal Radix layers (context menus, dialogs) lock scroll by hiding the body's
+    overflow and adding a margin the width of the scrollbar. The hidden overflow
+    reaches the viewport, the gutter goes with it, and the margin only half makes
+    up for it: the centred page and the wallpaper shift sideways on every open.
+    Lock the root instead, which keeps the reserved gutter, and drop the margin.
+    Wheel and touch scrolling stay blocked by the library's own listeners.
+  */
+  html:has(> body[data-scroll-locked]) {
+    overflow: hidden;
+  }
+
+  html body[data-scroll-locked] {
+    overflow: visible !important;
+    margin-right: 0 !important;
+  }
+
   /* Same idea for the classic WebKit bars: a hairline thumb on a clear track. */
   ::-webkit-scrollbar {
     width: 11px;
