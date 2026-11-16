@@ -12,17 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { defaultEngineId, engines, findEngine, resolveQuery } from "@/data/engines"
-
-const ENGINE_KEY = "yourtj-nav-engine"
-
-function readEngine(): string {
-  try {
-    return window.localStorage.getItem(ENGINE_KEY) ?? defaultEngineId
-  } catch {
-    return defaultEngineId
-  }
-}
+import { engines, resolveQuery } from "@/data/engines"
+import type { SearchController } from "@/hooks/use-search"
 
 /** An animated decoration should hold still when the system asks for calm. */
 function usePrefersReducedMotion() {
@@ -43,6 +34,8 @@ function usePrefersReducedMotion() {
 }
 
 type SearchBarProps = {
+  /** The draft and engine, shared with the other field on the page. */
+  search: SearchController
   /** `compact` is the one that moves into the nav bar once the hero scrolls away. */
   variant?: "hero" | "compact"
   /** Only the field that is actually on screen should answer "/" and Cmd+K. */
@@ -51,11 +44,9 @@ type SearchBarProps = {
   width?: number
 }
 
-export function SearchBar({ variant = "hero", shortcuts = true, width }: SearchBarProps) {
+export function SearchBar({ search, variant = "hero", shortcuts = true, width }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [query, setQuery] = useState("")
-  const [engineId, setEngineId] = useState(readEngine)
-  const engine = findEngine(engineId)
+  const { query, setQuery, engine, engineId, setEngineId } = search
   const compact = variant === "compact"
   const inputId = compact ? "tj-search-compact" : "tj-search"
   const calm = usePrefersReducedMotion()
@@ -67,14 +58,6 @@ export function SearchBar({ variant = "hero", shortcuts = true, width }: SearchB
     setHopping(false)
     requestAnimationFrame(() => setHopping(true))
   }
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(ENGINE_KEY, engineId)
-    } catch {
-      // Choice stays in memory when storage is unavailable.
-    }
-  }, [engineId])
 
   // "/" or Cmd/Ctrl+K jumps into the field from anywhere on the page.
   useEffect(() => {

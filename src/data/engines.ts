@@ -43,6 +43,8 @@ export const engines: Engine[] = [
   },
 ]
 
+export const engineIds = engines.map((engine) => engine.id)
+
 export const defaultEngineId = "google"
 
 export function findEngine(id: string): Engine {

@@ -35,6 +35,7 @@ import { useClockPrefs } from "@/hooks/use-clock-prefs"
 import { useEnumPref } from "@/hooks/use-enum-pref"
 import { useNumberPref } from "@/hooks/use-number-pref"
 import { useScrolledPast } from "@/hooks/use-scrolled-past"
+import { useSearch } from "@/hooks/use-search"
 import { usePins } from "@/hooks/use-pins"
 import { useWallpaper } from "@/hooks/use-wallpaper"
 import { clearRecent, pushRecent, readRecent } from "@/lib/recent-store"
@@ -56,6 +57,7 @@ export default function App() {
   const wallpaper = useWallpaper()
   const appearance = useAppearance()
   const sites = useSites()
+  const search = useSearch()
   const pins = usePins()
   const [quoteVisible, , setQuoteVisible] = useBoolPref("yourtj-nav-quote", true)
   const clock = useClockPrefs()
@@ -135,7 +137,7 @@ export default function App() {
       <div className="relative z-10 flex min-h-dvh flex-col">
         <div id="page-top" aria-hidden="true" className="h-px" />
 
-        <TopBar compactSearch={searchScrolledAway} />
+        <TopBar compactSearch={searchScrolledAway} search={search} />
 
         <main className="mx-auto w-full max-w-[1180px] flex-1 px-5 pb-4 sm:px-8">
           <h1 className="sr-only">YourTJ 校园导航</h1>
@@ -147,7 +149,7 @@ export default function App() {
               </div>
             </Collapse>
             <div ref={heroSearchRef}>
-              <SearchBar shortcuts={!searchScrolledAway} width={searchWidth} />
+              <SearchBar search={search} shortcuts={!searchScrolledAway} width={searchWidth} />
             </div>
             <PinnedBar
               pins={pinnedSites}

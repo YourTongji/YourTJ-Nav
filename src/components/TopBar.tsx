@@ -2,9 +2,16 @@ import { useEffect, useState } from "react"
 import { ArrowUpRight, Bubble } from "reicon-react"
 
 import { SearchBar } from "@/components/SearchBar"
+import type { SearchController } from "@/hooks/use-search"
 import { cn } from "@/lib/utils"
 
-export function TopBar({ compactSearch }: { compactSearch: boolean }) {
+export function TopBar({
+  compactSearch,
+  search,
+}: {
+  compactSearch: boolean
+  search: SearchController
+}) {
   const [compact, setCompact] = useState(false)
 
   // IntersectionObserver rather than a scroll listener: the nav only needs to know
@@ -51,7 +58,7 @@ export function TopBar({ compactSearch }: { compactSearch: boolean }) {
       {compactSearch ? (
         <div className="pointer-events-none absolute left-1/2 top-1/2 hidden w-[min(21rem,calc(100%-15rem))] -translate-x-1/2 -translate-y-1/2 animate-in fade-in-0 slide-in-from-top-1 duration-200 md:block">
           <div className="pointer-events-auto">
-            <SearchBar variant="compact" />
+            <SearchBar variant="compact" search={search} />
           </div>
         </div>
       ) : null}
