@@ -18,11 +18,14 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      # --auto：检查还没落地时排队，而不是直接报错。手动合一次也行。
       - name: Squash merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
-        run: gh pr merge "$PR" --squash --delete-branch --repo "$GITHUB_REPOSITORY"
+        run: |
+          gh pr merge "$PR" --squash --auto --delete-branch --repo "$GITHUB_REPOSITORY" \
+            || gh pr merge "$PR" --squash --delete-branch --repo "$GITHUB_REPOSITORY"
 
       # PR 正文里的 Closes #N 会在合入时自动关单，这里只负责留言，
       # 并兜底处理「关单没生效」的情况（比如 PR 正文被改过）。

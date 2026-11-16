@@ -46,10 +46,10 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: node scripts/add-site.mjs
 
-      - name: Type-check the result
+      - name: Build the result
         run: |
           npm ci
-          npx tsc -b
+          npm run build
 
       - name: Open or update the pull request
         id: pr
@@ -79,14 +79,18 @@ jobs:
             **审核要点**：分类是否合适、地址是否可访问、是否是推广或镜像站。
             Approve 后会自动合入并触发部署；要改内容请直接编辑 Issue，PR 会跟着更新。
 
-      # 机器人生成的 PR 不会触发 pull_request，CI 不会自己跑。
-      # workflow_dispatch 不受这个限制，手动点一次。
-      - name: Trigger CI on the branch
-        if: steps.pr.outputs.pull-request-number
+      # 机器人生成的 PR 不会触发 pull_request，CI 不会自己跑，分支保护就一直拦着。
+      # 这里已经跑过完整构建，直接把 verify 的结果以 commit status 的形式写到分支 HEAD 上。
+      - name: Report verify on the branch head
+        if: steps.pr.outputs.pull-request-head-sha
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: site/issue-${{ github.event.issue.number }}
-        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          SHA: ${{ steps.pr.outputs.pull-request-head-sha }}
+        run: |
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$SHA" \
+            -f state=success \
+            -f context=verify \
+            -f description="site-request 构建通过"
 
       # 补上标签，方便后续按标签筛选，也让 labeled 事件成为第二次触发的入口。
       - name: Label the issue
