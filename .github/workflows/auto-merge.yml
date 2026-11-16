@@ -9,6 +9,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # 合入后要留言并关单，缺了这一项会报 Resource not accessible by integration
+  issues: write
 
 jobs:
   merge:
