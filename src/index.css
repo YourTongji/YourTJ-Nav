@@ -303,8 +303,58 @@
 }
 
 .pinned-row[data-scrollable="true"] {
-  mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+}
+
+/*
+  两侧的滚动提示。只有一个箭头，没有底色和边框；那一侧还有内容时淡入。
+  箭头落在渐隐区里，所以不会压住第一个或最后一个图标。
+*/
+.pinned-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  opacity: 0;
+  translate: 0 -50%;
+  pointer-events: none;
+  transition:
+    opacity 180ms var(--ease-out-soft),
+    color 150ms var(--ease-out-soft);
+}
+
+.pinned-arrow[data-visible="true"] {
+  opacity: 0.85;
+  pointer-events: auto;
+}
+
+.pinned-arrow:hover,
+.pinned-arrow:focus-visible {
+  opacity: 1;
+  color: var(--ink);
+}
+
+.pinned-arrow-left {
+  left: 0;
+}
+
+.pinned-arrow-right {
+  right: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinned-arrow {
+    transition: opacity 120ms linear;
+  }
 }
 
 /*

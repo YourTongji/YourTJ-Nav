@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { ExternalDrive, Plus, Star } from "reicon-react"
+import { ChevronLeft, ChevronRight, ExternalDrive, Plus, Star } from "reicon-react"
 
 import { Mark, plateProps } from "@/components/Mark"
 import {
@@ -41,6 +41,8 @@ export function PinnedBar({
   const scrollerRef = useRef<HTMLDivElement>(null)
   const draggingId = useDraggingSiteId()
   const [scrollable, setScrollable] = useState(false)
+  // 哪一侧还有内容没露出来，决定箭头往哪边渐显
+  const [edges, setEdges] = useState({ left: false, right: false })
   const [marker, setMarker] = useState<Marker | null>(null)
   const [ctxSite, setCtxSite] = useState<{ site: Site; index: number } | null>(null)
 
@@ -49,12 +51,53 @@ export function PinnedBar({
   useEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return
-    const check = () => setScrollable(scroller.scrollWidth > scroller.clientWidth + 1)
-    check()
-    const observer = new ResizeObserver(check)
+
+    const measure = () => {
+      const max = scroller.scrollWidth - scroller.clientWidth
+      setScrollable(max > 1)
+      setEdges({ left: scroller.scrollLeft > 2, right: scroller.scrollLeft < max - 2 })
+    }
+
+    measure()
+    scroller.addEventListener("scroll", measure, { passive: true })
+    const observer = new ResizeObserver(measure)
     observer.observe(scroller)
-    return () => observer.disconnect()
+    return () => {
+      scroller.removeEventListener("scroll", measure)
+      observer.disconnect()
+    }
   }, [pins.length])
+
+  /*
+    纵向滚轮在置顶栏上转成横向滚动。React 的 onWheel 是 passive 的，拦不住默认行为，
+    所以直接挂原生监听。滚到头之后不再拦，页面照常往下滚。
+  */
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+
+    const onWheel = (event: WheelEvent) => {
+      const max = scroller.scrollWidth - scroller.clientWidth
+      if (max <= 1) return
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+
+      const goingRight = event.deltaY > 0
+      const blocked = goingRight ? scroller.scrollLeft >= max - 1 : scroller.scrollLeft <= 1
+      if (blocked) return
+
+      event.preventDefault()
+      scroller.scrollLeft += event.deltaY
+    }
+
+    scroller.addEventListener("wheel", onWheel, { passive: false })
+    return () => scroller.removeEventListener("wheel", onWheel)
+  }, [])
+
+  function nudge(direction: -1 | 1) {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    scroller.scrollBy({ left: direction * scroller.clientWidth * 0.8, behavior: "smooth" })
+  }
 
   const pinnedIds = new Set(pins.map((site) => site.id))
   const isExternal = draggingId !== null && !pinnedIds.has(draggingId)
@@ -95,6 +138,7 @@ export function PinnedBar({
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div className="relative">
+            <div className="relative">
             <div
               ref={scrollerRef}
               data-scrollable={scrollable ? "true" : undefined}
@@ -216,6 +260,31 @@ export function PinnedBar({
                 />
               ) : null}
             </ul>
+            </div>
+
+            {/* 只有那一侧还有内容时才渐显，不做按钮外观，就一个箭头 */}
+            <button
+              type="button"
+              aria-label="向左滚动置顶"
+              tabIndex={edges.left ? 0 : -1}
+              aria-hidden={!edges.left}
+              onClick={() => nudge(-1)}
+              data-visible={edges.left ? "true" : undefined}
+              className="pinned-arrow pinned-arrow-left"
+            >
+              <ChevronLeft size={15} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label="向右滚动置顶"
+              tabIndex={edges.right ? 0 : -1}
+              aria-hidden={!edges.right}
+              onClick={() => nudge(1)}
+              data-visible={edges.right ? "true" : undefined}
+              className="pinned-arrow pinned-arrow-right"
+            >
+              <ChevronRight size={15} aria-hidden="true" />
+            </button>
             </div>
 
             {isExternal ? (
