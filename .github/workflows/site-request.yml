@@ -17,8 +17,12 @@ concurrency:
 
 jobs:
   propose:
-    # 只处理带 site-request 标签的 Issue；模板会自动打上这个标签。
-    if: contains(github.event.issue.labels.*.name, 'site-request')
+    # 两个条件满足其一就处理：带 site-request 标签，或者标题以 [Site] 开头。
+    # 后者是兜底：模板里写的 labels 只有在仓库已存在同名标签时才生效，
+    # 标签缺失时 Issue 会静默地不带标签，只认标签就永远跑不起来。
+    if: |
+      contains(github.event.issue.labels.*.name, 'site-request') ||
+      startsWith(github.event.issue.title, '[Site]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -27,8 +31,16 @@ jobs:
         with:
           node-version: 22
 
+      - name: Ensure labels exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create site-request --repo "$GITHUB_REPOSITORY" \
+            --color 1d76db --description "自动生成站点 PR 的请求" --force
+          gh label create site --repo "$GITHUB_REPOSITORY" \
+            --color 0e8a16 --description "站点数据" --force
+
       - name: Apply issue to src/data/sites.ts
-        id: apply
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: node scripts/add-site.mjs
@@ -39,6 +51,7 @@ jobs:
           npx tsc -b
 
       - name: Open or update the pull request
+        id: pr
         uses: peter-evans/create-pull-request@v6
         with:
           branch: site/issue-${{ github.event.issue.number }}
@@ -55,4 +68,16 @@ jobs:
             - 分类与地址来自 Issue 表单，解析结果见上一步日志
 
             **审核要点**：分类是否合适、地址是否可访问、是否是推广或镜像站。
-            Approve 后会自动合入并触发部署；需要改内容请直接编辑 Issue，PR 会跟着更新。
+            Approve 后会自动合入并触发部署；要改内容请直接编辑 Issue，PR 会跟着更新。
+
+      # 补上标签，方便后续按标签筛选，也让 labeled 事件成为第二次触发的入口。
+      - name: Label the issue
+        if: steps.pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+          HAS_LABEL: ${{ contains(github.event.issue.labels.*.name, 'site-request') }}
+        run: |
+          if [ "$HAS_LABEL" != "true" ]; then
+            gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" --add-label site-request
+          fi
