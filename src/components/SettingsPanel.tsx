@@ -529,10 +529,14 @@ export function SettingsPanel({
           </SheetClose>
         </SheetHeader>
 
+        {/*
+          The gutter is reserved even when nothing overflows: with every group
+          folded the scrollbar would vanish, and the rows would widen by its width.
+        */}
         <div
           data-settings-scroll
           onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
-          className="flex-1 overflow-y-auto overscroll-contain px-4 py-1"
+          className="flex-1 overflow-y-auto overscroll-contain px-4 py-1 [scrollbar-gutter:stable]"
         >
           <SettingsGroup title="外观" summary="主题 · 材质 · 简洁模式" defaultOpen>
             <div className="space-y-4">
