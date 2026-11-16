@@ -84,7 +84,7 @@
 统一缓动 `--ease-spring: cubic-bezier(0.32, 0.72, 0, 1)`，时长 150 到 300 毫秒。
 
 会改变布局的开关一律走 `<Collapse>`，用 `grid-template-rows` 从 0fr 过渡到 1fr，
-不要靠挂载和卸载。开了 `prefers-reduced-motion` 时，猫不跳，卡片不倾斜，扫光不动。
+不要靠挂载和卸载。开了 `prefers-reduced-motion` 时，猫不跳，隐藏和孵化改成淡出淡入，卡片不倾斜，扫光不动。
 
 ## 字体
 

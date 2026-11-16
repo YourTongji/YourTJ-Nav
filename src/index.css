@@ -323,21 +323,45 @@
   降级规则改成 none，猫就会跑到页面外，所以这里显式给相对定位。
 */
 .search-cat {
-  position: absolute;
   /* Past the rounded corner (radius 28) so the body rests on the flat rim. */
-  left: 22px;
+  --cat-inset: 22px;
+  --cat-width: 58px;
+  position: absolute;
+  /*
+    `--cat-spot` is where along the flat rim it sits, 0 at the left end and 1 at
+    the right. It is 0 until the cat hatches somewhere else (SearchCat.tsx).
+  */
+  left: calc(var(--cat-inset) + (100% - 2 * var(--cat-inset) - var(--cat-width)) * var(--cat-spot, 0));
   /* Sits on the rim, not in it: the body's bottom edge is just above the border. */
   bottom: calc(100% + 1px);
-  width: 58px;
+  width: var(--cat-width);
   aspect-ratio: 72 / 55;
   z-index: 2;
   padding: 0;
   border: 0;
   background: none;
-  cursor: pointer;
+  cursor: grab;
   transform-origin: 50% 100%;
+  /* It can be dragged along the rim with a finger too. */
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+}
+
+/* Picked up: a little off the rim, leaning into the pull (SearchCat.tsx). */
+.search-cat[data-drag="true"] {
+  cursor: grabbing;
+}
+
+.search-cat[data-drag="true"] .search-cat-img {
+  transform: translateY(-6px) rotate(var(--cat-tilt, 0deg)) scale(1.04);
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-cat[data-drag="true"] .search-cat-img {
+    transform: none;
+  }
 }
 
 .search-cat-img {
@@ -389,6 +413,58 @@
   hairline light rim. The rim is an outline on the silhouette, not a glow
   underneath it — one pass, no pooled shadow.
 */
+/*
+  Leaving and hatching happen at the rim: anything below the pill's top edge is
+  clipped, so the cat sinks into the pill and the egg rises out of it. Only on
+  for those two moments; at rest nothing is clipped, not even the hop.
+*/
+.search-cat[data-phase] {
+  clip-path: inset(-96px -120px -1px -120px);
+  pointer-events: none;
+}
+
+.search-cat[data-phase="leaving"] .search-cat-img {
+  /* Roll about the middle of the body, not its feet. */
+  transform-origin: 50% 62%;
+}
+
+.search-cat[data-phase="hatching"] .search-cat-img {
+  /* Hidden until the shell cracks; the animation takes it from there. */
+  opacity: 0;
+}
+
+.search-egg {
+  position: absolute;
+  bottom: 0;
+  left: calc(50% - 12px);
+  width: 24px;
+  height: 30px;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 1px 1.5px oklch(0 0 0 / 0.25));
+}
+
+.search-egg-shell {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background:
+    radial-gradient(circle at 34% 28%, oklch(1 0 0 / 0.95) 0 14%, transparent 32%),
+    radial-gradient(circle at 62% 64%, oklch(0.72 0.05 70 / 0.35) 0 5%, transparent 6%),
+    radial-gradient(circle at 36% 72%, oklch(0.72 0.05 70 / 0.3) 0 4%, transparent 5%),
+    linear-gradient(160deg, oklch(0.98 0.02 85), oklch(0.9 0.04 80));
+  box-shadow: inset 0 -2px 3px oklch(0.6 0.05 70 / 0.28);
+}
+
+/* One egg, cut along a zigzag: the cap flies off, the cup sinks back. */
+.search-egg-shell[data-half="cap"] {
+  clip-path: polygon(0 0, 100% 0, 100% 54%, 84% 62%, 67% 51%, 50% 63%, 33% 51%, 16% 62%, 0 54%);
+  transform-origin: 50% 60%;
+}
+
+.search-egg-shell[data-half="cup"] {
+  clip-path: polygon(0 54%, 16% 62%, 33% 51%, 50% 63%, 67% 51%, 84% 62%, 100% 54%, 100% 100%, 0 100%);
+}
+
 .dark .search-cat-img {
   /* No rim and no glow: the lift alone has to carry the contrast. */
   filter:
@@ -398,8 +474,8 @@
 
 @media (max-width: 640px) {
   .search-cat {
-    left: 18px;
-    width: 48px;
+    --cat-inset: 18px;
+    --cat-width: 48px;
   }
 }
 
