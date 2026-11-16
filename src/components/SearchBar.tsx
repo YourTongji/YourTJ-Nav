@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { ArrowRight, ChevronDown, Search, X } from "reicon-react"
 
 import { Mark } from "@/components/Mark"
+import { SearchCat } from "@/components/SearchCat"
 import { optionId, SearchSuggestions } from "@/components/SearchSuggestions"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,24 +40,6 @@ function usePresence(open: boolean) {
   return mounted ? (open ? "open" : "closing") : null
 }
 
-/** An animated decoration should hold still when the system asks for calm. */
-function usePrefersReducedMotion() {
-  const [calm, setCalm] = useState(() =>
-    typeof window === "undefined"
-      ? false
-      : window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  )
-
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)")
-    const onChange = (event: MediaQueryListEvent) => setCalm(event.matches)
-    query.addEventListener("change", onChange)
-    return () => query.removeEventListener("change", onChange)
-  }, [])
-
-  return calm
-}
-
 type SearchBarProps = {
   /** The draft and engine, shared with the other field on the page. */
   search: SearchController
@@ -70,6 +53,12 @@ type SearchBarProps = {
   source: Omit<SuggestSource, "history">
   /** A site opened from the list, for 最近访问. */
   onVisit: (id: string) => void
+  /** The cat on the hero's rim, and how to send it away from its own menu. */
+  cat?: boolean
+  onHideCat?: () => void
+  /** Where along the rim the cat sits, 0 to 1. */
+  catSpot?: number
+  onCatSpot?: (spot: number) => void
 }
 
 export function SearchBar({
@@ -79,8 +68,13 @@ export function SearchBar({
   width,
   source,
   onVisit,
+  cat = false,
+  onHideCat,
+  catSpot = 0,
+  onCatSpot,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
   const { query, setQuery, engine, engineId, setEngineId } = search
   const compact = variant === "compact"
   const inputId = compact ? "tj-search-compact" : "tj-search"
@@ -202,16 +196,6 @@ export function SearchBar({
       inputRef.current?.blur()
     }
   }
-  const calm = usePrefersReducedMotion()
-  const [hopping, setHopping] = useState(false)
-
-  // Restart the hop even when it is clicked mid-air: drop the flag, then set it
-  // on the next frame so the animation runs from the top again.
-  function hop() {
-    setHopping(false)
-    requestAnimationFrame(() => setHopping(true))
-  }
-
   // "/" or Cmd/Ctrl+K jumps into the field from anywhere on the page.
   useEffect(() => {
     if (!shortcuts) return
@@ -255,6 +239,7 @@ export function SearchBar({
       style={compact ? undefined : { maxWidth: width ?? 608 }}
     >
     <form
+      ref={formRef}
       role="search"
       onSubmit={handleSubmit}
       onMouseDown={(event) => {
@@ -403,23 +388,14 @@ export function SearchBar({
         field, the engine and the submit button first.
       */}
       {compact ? null : (
-        <button
-          type="button"
-          aria-label="摸摸猫"
-          data-hop={hopping ? "true" : undefined}
-          onClick={hop}
-          onAnimationEnd={() => setHopping(false)}
-          className="search-cat"
-        >
-          <img
-            src={`${import.meta.env.BASE_URL}${calm ? "cat-still.png" : "cat.webp"}`}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            decoding="async"
-            className="search-cat-img"
-          />
-        </button>
+        <SearchCat
+          visible={cat}
+          onHide={() => onHideCat?.()}
+          spot={catSpot}
+          onSpot={(spot) => onCatSpot?.(spot)}
+          shellRef={formRef}
+          fieldRef={inputRef}
+        />
       )}
     </form>
 

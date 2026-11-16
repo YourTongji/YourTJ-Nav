@@ -29,6 +29,8 @@ type SettingsPanelProps = {
   themeMode: ThemeMode
   onThemeMode: (mode: ThemeMode) => void
   quoteVisible: boolean
+  catVisible: boolean
+  onCatVisible: (visible: boolean) => void
   onQuoteVisible: (visible: boolean) => void
   searchWidth: number
   onSearchWidth: (width: number) => void
@@ -417,6 +419,8 @@ export function SettingsPanel({
   onThemeMode,
   quoteVisible,
   onQuoteVisible,
+  catVisible,
+  onCatVisible,
   searchWidth,
   onSearchWidth,
   clock,
@@ -561,7 +565,10 @@ export function SettingsPanel({
                 />
               </div>
 
-              <SwitchRow title="显示一言" checked={quoteVisible} onChange={onQuoteVisible} />
+              <div>
+                <SwitchRow title="显示一言" checked={quoteVisible} onChange={onQuoteVisible} />
+                <SwitchRow title="显示小猫" checked={catVisible} onChange={onCatVisible} />
+              </div>
             </div>
           </SettingsGroup>
 
