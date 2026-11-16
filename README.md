@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://yourtongji.github.io/YourTJ-Nav/">在线访问</a> ·
+  <a href="https://n.yourtj.de">在线访问</a> ·
   <a href="./docs/README.md">项目文档</a> ·
   <a href="https://github.com/YourTongji/YourTJ-Nav/issues/new?template=add-site.yml">补充站点</a> ·
   <a href="https://github.com/YourTongji/YourTJ-Nav/issues/new?template=bug-report.yml">报告问题</a> ·

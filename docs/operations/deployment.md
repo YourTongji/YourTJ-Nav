@@ -9,7 +9,8 @@
 
 1. 打开仓库的 Settings，进 Pages，把 Build and deployment 的 Source 选成 GitHub Actions。
 2. 推送到 `main`，`.github/workflows/deploy.yml` 会自动构建并发布。
-3. 首次发布后，地址是 `https://<org>.github.io/<repo>/`。
+3. 首次发布后，地址是 `https://<org>.github.io/<repo>/`。配上自定义域名后，`n.yourtj.de` 是正式入口，
+   github.io 那个地址仍然可用。
 
 ### 工作流做了什么
 
