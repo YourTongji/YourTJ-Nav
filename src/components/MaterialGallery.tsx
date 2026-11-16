@@ -47,16 +47,14 @@ export function MaterialGallery({
                 <Check size={9} aria-hidden="true" />
               </span>
             </span>
-            <span className="px-0.5 leading-tight">
-              <span
-                className={cn(
-                  "block text-[11.5px] transition-colors",
-                  active ? "font-medium text-ink" : "text-ink-muted",
-                )}
-              >
-                {item.label}
-              </span>
-              <span className="mt-0.5 block text-[10.5px] text-ink-muted">{item.hint}</span>
+            {/* The sample says what the material is; the caption only names it. */}
+            <span
+              className={cn(
+                "px-0.5 text-[11.5px] leading-tight transition-colors",
+                active ? "font-medium text-ink" : "text-ink-muted",
+              )}
+            >
+              {item.label}
             </span>
           </button>
         )
