@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 /** What the user picked. `system` follows the OS and keeps following it. */
 export type ThemeMode = "light" | "dark" | "system"
@@ -33,10 +33,35 @@ export function useTheme() {
 
   const theme: Theme = mode === "system" ? (systemDark ? "dark" : "light") : mode
 
+  /*
+    A theme change repaints every colour on the page in one frame, which reads
+    as a flash. Where the browser has the View Transitions API the whole page
+    cross-fades instead, as the 简洁模式 swap does; the first paint (already set
+    by the boot script), a hidden tab and reduced motion stay instant.
+  */
+  const painted = useRef(false)
+  const latest = useRef<ViewTransition | null>(null)
   useEffect(() => {
     const root = document.documentElement
-    root.classList.toggle("dark", theme === "dark")
-    root.style.colorScheme = theme
+    const apply = () => {
+      root.classList.toggle("dark", theme === "dark")
+      root.style.colorScheme = theme
+    }
+    const first = !painted.current
+    painted.current = true
+    const unchanged = root.classList.contains("dark") === (theme === "dark")
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (first || unchanged || still || document.hidden || !document.startViewTransition) {
+      apply()
+      return
+    }
+    root.dataset.transition = "theme"
+    const transition = document.startViewTransition(apply)
+    latest.current = transition
+    transition.finished.finally(() => {
+      // A quicker second switch skips this one; leave the marker for that one.
+      if (latest.current === transition) delete root.dataset.transition
+    })
   }, [theme])
 
   useEffect(() => {
