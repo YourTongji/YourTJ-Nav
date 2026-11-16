@@ -42,7 +42,7 @@ export const wallpaperSources: WallpaperSource[] = [
   },
 ]
 
-export const defaultSourceId: WallpaperSourceId = "anime"
+export const defaultSourceId: WallpaperSourceId = "landscape"
 
 export function findSource(id: WallpaperSourceId): WallpaperSource {
   return wallpaperSources.find((source) => source.id === id) ?? wallpaperSources[0]
