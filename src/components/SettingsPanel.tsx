@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { Check, ChevronDown, Image, Pen, Plus, Trash, X } from "reicon-react"
 
-import { Mark } from "@/components/Mark"
 import { ClockSection } from "@/components/settings/ClockSection"
+import { SortableSites } from "@/components/settings/SortableSites"
 import { FieldLabel, SettingsGroup } from "@/components/settings/primitives"
 import { MaterialGallery } from "@/components/MaterialGallery"
 import { ThemeGallery } from "@/components/ThemeGallery"
@@ -18,7 +18,6 @@ import type { ThemeMode } from "@/hooks/use-theme"
 import type { SitesController } from "@/hooks/use-sites"
 import type { WallpaperController } from "@/hooks/use-wallpaper"
 import type { MaterialId } from "@/data/materials"
-import { hostOf } from "@/lib/site-store"
 import { cn } from "@/lib/utils"
 
 type SettingsPanelProps = {
@@ -248,6 +247,9 @@ function SitesSection({
         )}
       </div>
 
+      <p id="sortable-hint" className="sr-only">
+        拖动把手调整顺序，或者按上下方向键
+      </p>
       <div className="space-y-1.5">
         {sites.folders.map((folder) => (
           <details key={folder.id} className="group rounded-xl border border-hairline bg-glass">
@@ -326,43 +328,14 @@ function SitesSection({
               </span>
             </summary>
 
-            <ul className="space-y-0.5 px-1.5 pb-1.5">
-              {folder.sites.length === 0 ? (
-                <li className="px-2 py-2 text-[11.5px] text-ink-muted">空文件夹</li>
-              ) : null}
-              {folder.sites.map((site) => (
-                <li
-                  key={site.id}
-                  className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-accent"
-                >
-                  <span className="grid size-7 shrink-0 place-items-center rounded-md bg-popover">
-                    <Mark mark={site.mark} size={16} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12.5px] text-ink">{site.title}</span>
-                    <span className="block truncate text-[10.5px] text-ink-muted">
-                      {hostOf(site.url)}
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`编辑 ${site.title}`}
-                    onClick={() => onEditSite(site, folder.id)}
-                    className="grid size-7 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                  >
-                    <Pen size={13} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`删除 ${site.title}`}
-                    onClick={() => sites.removeSite(site.id)}
-                    className="grid size-7 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent hover:text-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                  >
-                    <Trash size={13} aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <SortableSites
+              sites={folder.sites}
+              customOrder={sites.hasOrder(folder.id)}
+              onReorder={(ids) => sites.reorderFolder(folder.id, ids)}
+              onResetOrder={() => sites.resetOrder(folder.id)}
+              onEdit={(site) => onEditSite(site, folder.id)}
+              onRemove={sites.removeSite}
+            />
           </details>
         ))}
       </div>
