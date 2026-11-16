@@ -42,7 +42,7 @@ export function RecentSites({ sites, onClear }: RecentSitesProps) {
         </button>
       </div>
 
-      <ul className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
         {sites.map((site) => (
           <li key={site.id}>
             {/*

@@ -142,7 +142,7 @@ export default function App() {
         <main className="page-frame flex-1 pb-4">
           <h1 className="sr-only">YourTJ 校园导航</h1>
 
-          <section ref={heroRef} className="pb-9 pt-[clamp(1.75rem,8vh,4rem)] sm:pb-11">
+          <section ref={heroRef} className="pb-7 pt-[clamp(1.25rem,6vh,4rem)] sm:pb-11">
             <Collapse open={clock.prefs.visible}>
               <div className="mb-5">
                 <Clock prefs={clock.prefs} />
@@ -160,7 +160,7 @@ export default function App() {
               onOpenPicker={() => setPickerOpen(true)}
             />
             <Collapse open={quoteVisible}>
-              <div className="mt-5">
+              <div className="mt-4 sm:mt-5">
                 <Hitokoto />
               </div>
             </Collapse>

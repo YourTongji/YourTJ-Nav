@@ -134,7 +134,7 @@ export function PinnedBar({
   }
 
   return (
-    <section aria-label="置顶站点" className="relative mt-6">
+    <section aria-label="置顶站点" className="relative mt-5 sm:mt-6">
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div className="relative">

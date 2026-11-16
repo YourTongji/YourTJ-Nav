@@ -103,6 +103,7 @@
   :root {
     --page-gutter: 32px;
   }
+
 }
 
 .dark {
@@ -425,6 +426,40 @@
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
 }
 
+/* 40px with a pointer, 44px under a finger: the corner is where thumbs land. */
+.corner-button {
+  width: 40px;
+  height: 40px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .corner-button {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* A sideways row that still hides something fades on that side only. */
+.scroll-fade {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent 100%
+  );
+}
+
+.scroll-fade[data-fade-start="true"] {
+  --fade-start: 28px;
+}
+
+.scroll-fade[data-fade-end="true"] {
+  --fade-end: 28px;
+}
+
 /*
   两侧的滚动提示。只有一个箭头，没有底色和边框；那一侧还有内容时淡入。
   箭头落在渐隐区里，所以不会压住第一个或最后一个图标。
@@ -583,11 +618,23 @@
   visibility: visible;
 }
 
+/*
+  Centred on the bar, as wide as the room between the logo and the chip
+  allows: the chip is 36px below 640px and about 120px above it.
+*/
 .topbar-search {
+  --topbar-side: 36px;
+  width: min(21rem, calc(100% - 2 * (var(--bar-inset) + var(--topbar-side) + 8px)));
   opacity: var(--handoff, 0);
   translate: -50% calc(-50% + (1 - var(--handoff, 0)) * 6px);
   scale: calc(0.96 + 0.04 * var(--handoff, 0));
   visibility: hidden;
+}
+
+@media (min-width: 640px) {
+  .topbar-search {
+    --topbar-side: 124px;
+  }
 }
 
 .topbar[data-handoff="true"] .topbar-search {

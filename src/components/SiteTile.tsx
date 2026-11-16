@@ -1,6 +1,7 @@
 import { Mark, plateProps } from "@/components/Mark"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Site } from "@/data/sites"
+import { cn } from "@/lib/utils"
 
 function hostOf(url: string) {
   try {
@@ -12,10 +13,13 @@ function hostOf(url: string) {
 
 export function SiteTile({
   site,
+  dense = false,
   dropTarget = false,
   onVisit,
 }: {
   site: Site
+  /** The 52px plate a phone-width grid packs five across, instead of 64px. */
+  dense?: boolean
   dropTarget?: boolean
   onVisit?: () => void
 }) {
@@ -30,15 +34,26 @@ export function SiteTile({
           draggable={false}
           data-drop={dropTarget}
           onClick={() => onVisit?.()}
-          className="nav-tile flex w-full flex-col items-center gap-2 rounded-xl pt-0.5"
+          className={cn(
+            "nav-tile flex w-full flex-col items-center rounded-xl pt-0.5",
+            dense ? "gap-1.5" : "gap-2",
+          )}
         >
           <span
-            className="nav-tile-plate grid size-16 place-items-center overflow-hidden rounded-[18px]"
+            className={cn(
+              "nav-tile-plate grid place-items-center overflow-hidden",
+              dense ? "size-13 rounded-[15px]" : "size-16 rounded-[18px]",
+            )}
             {...plateProps(mark)}
           >
-            <Mark mark={mark} size={34} />
+            <Mark mark={mark} size={dense ? 28 : 34} />
           </span>
-          <span className="line-clamp-2 max-w-full text-balance text-center text-[12px] leading-[1.35] text-ink">
+          <span
+            className={cn(
+              "line-clamp-2 max-w-full text-balance text-center leading-[1.35] text-ink",
+              dense ? "text-[11.5px]" : "text-[12px]",
+            )}
+          >
             {site.title}
           </span>
         </a>

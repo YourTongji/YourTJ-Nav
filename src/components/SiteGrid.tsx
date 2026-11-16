@@ -3,36 +3,10 @@ import { ChevronLeft, ChevronRight, Plus } from "reicon-react"
 
 import { SiteTile } from "@/components/SiteTile"
 import { Button } from "@/components/ui/button"
+import { useGridShape } from "@/hooks/use-grid-shape"
 import type { Folder } from "@/hooks/use-sites"
 import { beginSiteDrag, endSiteDrag, writeDragData } from "@/lib/drag"
 import { cn } from "@/lib/utils"
-
-/** Three rows of eight on a desktop, so one folder rarely needs a second page. */
-const PAGE_SIZE = { base: 12, sm: 16, lg: 24 }
-
-function usePageSize() {
-  const [size, setSize] = useState(() => {
-    if (typeof window === "undefined") return PAGE_SIZE.lg
-    if (window.matchMedia("(min-width: 1024px)").matches) return PAGE_SIZE.lg
-    if (window.matchMedia("(min-width: 640px)").matches) return PAGE_SIZE.sm
-    return PAGE_SIZE.base
-  })
-
-  useEffect(() => {
-    const wide = window.matchMedia("(min-width: 1024px)")
-    const medium = window.matchMedia("(min-width: 640px)")
-    const update = () =>
-      setSize(wide.matches ? PAGE_SIZE.lg : medium.matches ? PAGE_SIZE.sm : PAGE_SIZE.base)
-    wide.addEventListener("change", update)
-    medium.addEventListener("change", update)
-    return () => {
-      wide.removeEventListener("change", update)
-      medium.removeEventListener("change", update)
-    }
-  }, [])
-
-  return size
-}
 
 /** Replaces the slots a page occupies in the full order, leaving other pages alone. */
 function mergePageOrder(all: string[], page: string[]): string[] {
@@ -57,7 +31,9 @@ type Motion = "none" | "fade" | "forward" | "back"
 
 export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
   const [view, setView] = useState({ folder: folder.id, page: 0, motion: "none" as Motion })
-  const pageSize = usePageSize()
+  const frameRef = useRef<HTMLDivElement>(null)
+  const shape = useGridShape(frameRef)
+  const pageSize = shape.pageSize
   // Switching folders starts the new one on its first page. Adjusting state
   // during render, not in an effect, so the old folder's page never paints.
   if (view.folder !== folder.id) setView({ folder: folder.id, page: 0, motion: "fade" })
@@ -135,9 +111,45 @@ export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
     onReorder(mergePageOrder(allIds, ids))
   }
 
+  /*
+    Swipe to page on touch. The list is touch-action: pan-y, so vertical
+    scrolling stays the browser's and a sideways stroke comes to us. A swipe
+    that ends on a tile must not also open it, so the click after it is eaten.
+  */
+  const swipe = useRef<{ x: number; y: number; id: number } | null>(null)
+  const swallowClick = useRef(false)
+  const swipeHandlers = {
+    onPointerDown: (event: React.PointerEvent) => {
+      if (event.pointerType === "mouse" || pages < 2) return
+      swipe.current = { x: event.clientX, y: event.clientY, id: event.pointerId }
+    },
+    onPointerUp: (event: React.PointerEvent) => {
+      const start = swipe.current
+      swipe.current = null
+      if (!start || start.id !== event.pointerId) return
+      const dx = event.clientX - start.x
+      const dy = event.clientY - start.y
+      if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+      swallowClick.current = true
+      turn(dx < 0 ? 1 : -1)
+    },
+    onPointerCancel: () => {
+      swipe.current = null
+    },
+    onClickCapture: (event: React.MouseEvent) => {
+      if (!swallowClick.current) return
+      swallowClick.current = false
+      event.preventDefault()
+      event.stopPropagation()
+    },
+  }
+
   if (folder.sites.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-hairline-strong px-6 py-12 text-center">
+      <div
+        ref={frameRef}
+        className="rounded-2xl border border-dashed border-hairline-strong px-6 py-12 text-center"
+      >
         <p className="text-[13px] text-ink">这个文件夹还是空的</p>
         <p className="mt-1 text-[12px] text-ink-muted">右键这里，或者点下面的按钮</p>
         <Button variant="glass" size="sm" className="mt-4" onClick={onAdd}>
@@ -149,7 +161,7 @@ export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
   }
 
   return (
-    <div>
+    <div ref={frameRef}>
       {/*
         Keyed by page, so each move remounts the list and its one short entrance
         starts over: rapid clicks restart it instead of stacking.
@@ -158,8 +170,14 @@ export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
         key={`${folder.id}:${current}`}
         ref={listRef}
         data-motion={view.motion}
-        style={{ minHeight }}
-        className="site-page grid content-start grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 sm:gap-y-5 md:grid-cols-6 lg:grid-cols-8"
+        style={{
+          minHeight,
+          gridTemplateColumns: `repeat(${shape.cols}, minmax(0, 1fr))`,
+          columnGap: shape.gap,
+          rowGap: shape.rowGap,
+        }}
+        className="site-page grid touch-pan-y content-start"
+        {...swipeHandlers}
       >
         {pageSites.map((site) => (
           <li
@@ -201,6 +219,7 @@ export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
           >
             <SiteTile
               site={site}
+              dense={shape.narrow}
               dropTarget={overId === site.id && dragId !== null && dragId !== site.id}
               onVisit={() => onVisit(site.id)}
             />
