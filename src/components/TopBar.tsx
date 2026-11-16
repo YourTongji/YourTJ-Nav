@@ -71,7 +71,7 @@ export function TopBar({
           href="https://f.yourtj.de"
           target="_blank"
           rel="noopener noreferrer"
-          className="nav-chip group flex h-9 items-center gap-1.5 rounded-full pl-3 pr-2.5 text-[12px] font-medium text-ink transition-[background-color,border-color,scale] duration-150 hover:border-[color-mix(in_oklab,var(--brand)_45%,var(--hairline-strong))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand active:scale-[0.96]"
+          className="nav-chip group flex h-9 items-center gap-1.5 rounded-full pl-3 pr-2.5 text-[12px] font-medium text-ink transition-[background-color,box-shadow,scale] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand active:scale-[0.96]"
         >
           <Bubble size={13} aria-hidden="true" className="text-brand" />
           <span className="whitespace-nowrap">YourTJ 社区</span>

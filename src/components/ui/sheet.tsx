@@ -65,20 +65,20 @@ function SheetContent({
         }}
         className={cn(
           "fixed z-50 flex flex-col outline-none",
-          "border-hairline-strong mat-panel",
+          "mat-panel",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=open]:duration-300 data-[state=closed]:duration-200",
           side === "float"
             ? cn(
                 "right-4 bottom-[4.75rem] h-[min(calc(100dvh-7.5rem),42rem)] w-[min(26rem,calc(100vw-2rem))]",
-                "rounded-[22px] border shadow-[0_26px_64px_-28px_var(--shade)]",
+                "rounded-[22px]",
                 "origin-bottom-right",
                 "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
                 "data-[state=open]:slide-in-from-bottom-3 data-[state=closed]:slide-out-to-bottom-2",
               )
             : side === "right"
-              ? "inset-y-0 right-0 w-full border-l shadow-[0_0_80px_-20px_var(--shade)] sm:w-[23rem] data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right"
-              : "inset-y-0 left-0 w-full border-r shadow-[0_0_80px_-20px_var(--shade)] sm:w-[23rem] data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
+              ? "inset-y-0 right-0 w-full sm:w-[23rem] data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right"
+              : "inset-y-0 left-0 w-full sm:w-[23rem] data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
           className,
         )}
         {...props}

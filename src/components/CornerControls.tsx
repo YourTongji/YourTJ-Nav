@@ -28,7 +28,7 @@ export function CornerControls({
             onClick={wallpaper.refresh}
             aria-busy={loading}
             aria-label="换一张壁纸"
-            className="relative size-10 rounded-full shadow-[0_10px_28px_-16px_var(--shade)]"
+            className="relative size-10 rounded-full"
           >
             {/*
               A ring that fills and fades while the next wallpaper loads. It sits
@@ -71,7 +71,7 @@ export function CornerControls({
             size="icon"
             onClick={onOpenSettings}
             aria-label="外观与站点设置"
-            className="size-10 rounded-full shadow-[0_10px_28px_-16px_var(--shade)]"
+            className="size-10 rounded-full"
           >
             <Settings size={17} aria-hidden="true" />
           </Button>

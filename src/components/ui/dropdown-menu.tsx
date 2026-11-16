@@ -25,8 +25,7 @@ function DropdownMenuContent({
         align={align}
         className={cn(
           "z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[11rem] overflow-y-auto overflow-x-hidden",
-          "rounded-xl border border-hairline-strong mat-panel p-1.5 text-popover-foreground",
-          "shadow-[0_24px_60px_-24px_var(--shade)] backdrop-blur-xl",
+          "rounded-[14px] mat-panel p-1.5 text-popover-foreground",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           "data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1",

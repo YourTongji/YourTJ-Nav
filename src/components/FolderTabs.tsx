@@ -52,11 +52,12 @@ export function FolderTabs({ folders, active, onChange, onCreate }: FolderTabsPr
             onClick={() => onChange(folder.id)}
             onKeyDown={(event) => move(event, index)}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] transition-colors duration-150",
+              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] transition-[background-color,color,box-shadow] duration-150",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-              selected
-                ? "bg-glass-hover text-ink"
-                : "text-ink-muted hover:bg-glass hover:text-ink",
+              // The selected tab is the same glass as every chip on the page.
+              // Unselected labels sit straight on the photo, where muted ink measured
+              // 4.1:1 at worst; the plate, not the ink, is what marks the choice.
+              selected ? "nav-chip text-ink" : "text-ink hover:bg-glass",
             )}
           >
             {folder.label}

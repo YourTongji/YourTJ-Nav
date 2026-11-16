@@ -20,8 +20,8 @@ function ContextMenuContent({
       <ContextMenuPrimitive.Content
         data-slot="context-menu-content"
         className={cn(
-          "z-50 min-w-[11rem] overflow-hidden rounded-xl border border-hairline-strong mat-panel p-1.5",
-          "text-popover-foreground shadow-[0_24px_60px_-24px_var(--shade)] backdrop-blur-xl",
+          "z-50 min-w-[11rem] overflow-hidden rounded-[14px] mat-panel p-1.5",
+          "text-popover-foreground",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           className,
