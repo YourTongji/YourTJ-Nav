@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { Check, ChevronDown, Image, Pen, Plus, Trash, X } from "reicon-react"
 
+import { Collapse } from "@/components/Collapse"
 import { ClockSection } from "@/components/settings/ClockSection"
 import { SortableSites } from "@/components/settings/SortableSites"
-import { FieldLabel, SettingsGroup } from "@/components/settings/primitives"
+import { FieldLabel, SettingsGroup, SwitchRow, revealOpened } from "@/components/settings/primitives"
 import { MaterialGallery } from "@/components/MaterialGallery"
 import { ThemeGallery } from "@/components/ThemeGallery"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
 import type { Site } from "@/data/sites"
 import { wallpaperSources, type WallpaperSourceId } from "@/data/wallpapers"
 import type { AppearanceController } from "@/hooks/use-appearance"
@@ -60,34 +60,32 @@ function WallpaperSection({
 
   return (
     <section className="space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-[13px] font-semibold text-ink">壁纸</h3>
-        <span className="text-[11px] text-ink-muted">
-          {wallpaperSources.find((source) => source.id === wallpaper.source)?.hint}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-1 rounded-full bg-[var(--mat-well)] p-1">
-        {wallpaperSources.map((source) => {
-          const active = source.id === wallpaper.source
-          return (
-            <button
-              key={source.id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => pickSource(source.id)}
-              className={cn(
-                "h-8 rounded-full text-[12.5px] font-medium transition-colors duration-150",
-                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                active
-                  ? "bg-[var(--mat-raised)] text-ink shadow-[var(--mat-raised-edge)]"
-                  : "text-ink-muted hover:text-ink",
-              )}
-            >
-              {source.label}
-            </button>
-          )
-        })}
+      <div className="space-y-1.5">
+        <FieldLabel hint={wallpaperSources.find((source) => source.id === wallpaper.source)?.hint}>
+          来源
+        </FieldLabel>
+        <div className="grid grid-cols-3 gap-1 rounded-full bg-[var(--mat-well)] p-1">
+          {wallpaperSources.map((source) => {
+            const active = source.id === wallpaper.source
+            return (
+              <button
+                key={source.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => pickSource(source.id)}
+                className={cn(
+                  "h-8 rounded-full text-[12.5px] font-medium transition-colors duration-150 pointer-coarse:h-10",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                  active
+                    ? "bg-[var(--mat-raised)] text-ink shadow-[var(--mat-raised-edge)]"
+                    : "text-ink-muted hover:text-ink",
+                )}
+              >
+                {source.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {isCustom ? (
@@ -126,7 +124,11 @@ function WallpaperSection({
                     type="button"
                     aria-label="删除这张壁纸"
                     onClick={() => void wallpaper.removeCustom(item.id)}
-                    className="absolute right-1 top-1 grid size-[18px] place-items-center rounded-full bg-[rgba(17,24,39,0.76)] text-white opacity-0 transition-opacity duration-150 hover:bg-[rgba(17,24,39,0.9)] focus-visible:opacity-100 group-hover:opacity-100"
+                    className={cn(
+                      "absolute right-1 top-1 grid size-[18px] place-items-center rounded-full bg-[rgba(17,24,39,0.76)] text-white opacity-0 transition-opacity duration-150 hover:bg-[rgba(17,24,39,0.9)] focus-visible:opacity-100 group-hover:opacity-100",
+                      // No hover on touch, so the button is simply there, with a finger-sized target.
+                      "[@media(hover:none)]:size-6 [@media(hover:none)]:opacity-100 after:absolute after:-inset-2 after:content-['']",
+                    )}
                   >
                     <X size={10} aria-hidden="true" />
                   </button>
@@ -143,11 +145,9 @@ function WallpaperSection({
               <Plus size={16} aria-hidden="true" />
             </button>
           </div>
-          <p className="mt-2 text-[11px] text-ink-muted">
-            {wallpaper.customs.length
-              ? `${wallpaper.customs.length} 张 · 点选切换，悬停右上角删除`
-              : "还没有自定义图片，点上面的 + 添加"}
-          </p>
+          {wallpaper.customs.length ? null : (
+            <p className="mt-2 text-[11px] text-ink-muted">还没有自定义图片，点上面的 + 添加</p>
+          )}
         </div>
       ) : (
         <>
@@ -227,121 +227,135 @@ function SitesSection({
   const [renaming, setRenaming] = useState<string | null>(null)
   const [label, setLabel] = useState("")
   const [creating, setCreating] = useState(false)
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
+  const idBase = useId()
+
+  function toggle(folderId: string, element: HTMLElement | null) {
+    const next = new Set(expanded)
+    if (next.delete(folderId)) {
+      setExpanded(next)
+      return
+    }
+    next.add(folderId)
+    setExpanded(next)
+    revealOpened(element)
+  }
+
+  const action = cn(
+    "relative grid size-7 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent pointer-coarse:size-10",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+  )
 
   return (
     <section className="space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-[13px] font-semibold text-ink">站点与文件夹</h3>
-        {sites.isCustomized ? (
-          <button
-            type="button"
-            onClick={sites.resetSites}
-            className="rounded-full px-2 py-0.5 text-[11.5px] text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            恢复默认
-          </button>
-        ) : (
-          <span className="text-[11px] text-ink-muted">
-            {sites.folders.reduce((total, folder) => total + folder.sites.length, 0)} 个
-          </span>
-        )}
-      </div>
-
       <p id="sortable-hint" className="sr-only">
         拖动把手调整顺序，或者按上下方向键
       </p>
       <div className="space-y-1.5">
-        {sites.folders.map((folder) => (
-          <details key={folder.id} className="group rounded-xl border border-hairline bg-glass">
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-[12.5px] text-ink">
-              {renaming === folder.id ? (
-                <input
-                  autoFocus
-                  value={label}
-                  onChange={(event) => setLabel(event.target.value)}
-                  onClick={(event) => event.preventDefault()}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      sites.renameFolder(folder.id, label)
-                      setRenaming(null)
-                    }
-                    if (event.key === "Escape") setRenaming(null)
-                  }}
-                  onBlur={() => {
-                    sites.renameFolder(folder.id, label)
-                    setRenaming(null)
-                  }}
-                  aria-label="文件夹名称"
-                  className="h-6 w-28 rounded-md border border-hairline-strong bg-popover px-1.5 text-[12.5px] text-ink outline-none"
-                />
-              ) : (
-                <span className="font-medium">{folder.label}</span>
-              )}
-              <span className="text-[11px] tabular-nums text-ink-muted">
-                {folder.sites.length}
-              </span>
-
-              <span className="ml-auto flex items-center gap-0.5">
+        {sites.folders.map((folder) => {
+          const open = expanded.has(folder.id)
+          const labelId = `${idBase}-${folder.id}`
+          return (
+            <div key={folder.id} className="rounded-xl border border-hairline bg-glass">
+              {/*
+                The row toggles the folder, and its buttons sit beside the toggle
+                rather than inside it: a <summary> full of buttons announced as
+                one button, and Space in the rename field folded the folder.
+              */}
+              <div className="relative flex min-h-10 items-center gap-1.5 pl-3 pr-1.5 text-[12.5px] text-ink pointer-coarse:min-h-12">
                 <button
                   type="button"
-                  aria-label={`向 ${folder.label} 添加站点`}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    onAddSite(folder.id)
-                  }}
-                  className="grid size-6 place-items-center rounded-full text-ink-muted hover:bg-accent hover:text-ink"
-                >
-                  <Plus size={13} aria-hidden="true" />
-                </button>
-                {folder.custom ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-label={`重命名 ${folder.label}`}
-                      onClick={(event) => {
-                        event.preventDefault()
-                        setLabel(folder.label)
-                        setRenaming(folder.id)
-                      }}
-                      className="grid size-6 place-items-center rounded-full text-ink-muted hover:bg-accent hover:text-ink"
-                    >
-                      <Pen size={12} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`删除文件夹 ${folder.label}`}
-                      onClick={(event) => {
-                        event.preventDefault()
-                        sites.removeFolder(folder.id)
-                      }}
-                      className="grid size-6 place-items-center rounded-full text-ink-muted hover:bg-accent hover:text-destructive"
-                    >
-                      <Trash size={12} aria-hidden="true" />
-                    </button>
-                  </>
-                ) : null}
+                  aria-expanded={open}
+                  aria-labelledby={labelId}
+                  onClick={(event) => toggle(folder.id, event.currentTarget.parentElement?.parentElement ?? null)}
+                  className="absolute inset-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                />
+                {renaming === folder.id ? (
+                  <input
+                    autoFocus
+                    value={label}
+                    onChange={(event) => setLabel(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        sites.renameFolder(folder.id, label)
+                        setRenaming(null)
+                      }
+                      if (event.key === "Escape") setRenaming(null)
+                    }}
+                    onBlur={() => {
+                      sites.renameFolder(folder.id, label)
+                      setRenaming(null)
+                    }}
+                    aria-label="文件夹名称"
+                    className="relative h-7 w-32 rounded-md border border-hairline-strong bg-popover px-1.5 text-[12.5px] text-ink outline-none"
+                  />
+                ) : (
+                  <span id={labelId} className="pointer-events-none flex min-w-0 items-baseline gap-1.5">
+                    <span className="truncate font-medium">{folder.label}</span>
+                    <span className="text-[11px] tabular-nums text-ink-muted">{folder.sites.length}</span>
+                  </span>
+                )}
+
+                <span className="relative ml-auto flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    aria-label={`向 ${folder.label} 添加站点`}
+                    onClick={() => onAddSite(folder.id)}
+                    className={cn(action, "hover:text-ink")}
+                  >
+                    <Plus size={13} aria-hidden="true" />
+                  </button>
+                  {folder.custom ? (
+                    <>
+                      <button
+                        type="button"
+                        aria-label={`重命名 ${folder.label}`}
+                        onClick={() => {
+                          setLabel(folder.label)
+                          setRenaming(folder.id)
+                        }}
+                        className={cn(action, "hover:text-ink")}
+                      >
+                        <Pen size={12} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`删除文件夹 ${folder.label}`}
+                        onClick={() => sites.removeFolder(folder.id)}
+                        className={cn(action, "hover:text-destructive")}
+                      >
+                        <Trash size={12} aria-hidden="true" />
+                      </button>
+                    </>
+                  ) : null}
+                </span>
                 <ChevronDown
                   size={12}
                   aria-hidden="true"
-                  className="ml-1 text-ink-muted transition-transform duration-200 group-open:rotate-180"
+                  className={cn(
+                    "pointer-events-none mr-1 shrink-0 text-ink-muted transition-transform duration-200",
+                    open && "rotate-180",
+                  )}
                 />
-              </span>
-            </summary>
+              </div>
 
-            <SortableSites
-              sites={folder.sites}
-              customOrder={sites.hasOrder(folder.id)}
-              onReorder={(ids) => sites.reorderFolder(folder.id, ids)}
-              onResetOrder={() => sites.resetOrder(folder.id)}
-              onEdit={(site) => onEditSite(site, folder.id)}
-              onRemove={sites.removeSite}
-            />
-          </details>
-        ))}
+              <Collapse open={open}>
+                <SortableSites
+                  sites={folder.sites}
+                  customOrder={sites.hasOrder(folder.id)}
+                  onReorder={(ids) => sites.reorderFolder(folder.id, ids)}
+                  onResetOrder={() => sites.resetOrder(folder.id)}
+                  onEdit={(site) => onEditSite(site, folder.id)}
+                  onRemove={sites.removeSite}
+                />
+              </Collapse>
+            </div>
+          )
+        })}
       </div>
 
       {creating ? (
-        <div className="flex items-center gap-1.5 rounded-xl border border-hairline-strong bg-glass px-2 py-1.5">
+        <div className="flex min-h-9 items-center gap-1.5 rounded-xl border border-hairline-strong bg-glass px-2 py-1.5 pointer-coarse:min-h-11">
           <input
             autoFocus
             value={label}
@@ -369,16 +383,23 @@ function SitesSection({
               setLabel("")
               setCreating(false)
             }}
-            className="grid size-6 place-items-center rounded-full text-ink-muted hover:text-ink"
+            className={cn(action, "hover:text-ink")}
           >
             <Check size={13} aria-hidden="true" />
           </button>
         </div>
       ) : (
-        <Button variant="glass" size="sm" className="w-full" onClick={() => setCreating(true)}>
-          <Plus size={14} aria-hidden="true" />
-          新建文件夹
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="glass" size="sm" className="flex-1 pointer-coarse:h-10" onClick={() => setCreating(true)}>
+            <Plus size={14} aria-hidden="true" />
+            新建文件夹
+          </Button>
+          {sites.isCustomized ? (
+            <Button variant="ghost" size="sm" className="text-ink-muted pointer-coarse:h-10" onClick={sites.resetSites}>
+              恢复默认
+            </Button>
+          ) : null}
+        </div>
       )}
     </section>
   )
@@ -415,6 +436,50 @@ export function SettingsPanel({
     if (open) openedAt.current = performance.now()
   }, [open])
 
+  // The header rule only appears once something has scrolled under it.
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    if (!open) setScrolled(false)
+  }, [open])
+
+  /*
+    On a phone the panel is a bottom sheet, and a sheet is closed by pulling it
+    down. The header is the grip; the list below keeps its own scrolling.
+  */
+  const contentRef = useRef<HTMLDivElement>(null)
+  const pull = useRef<{ pointer: number; startY: number; startAt: number; distance: number } | null>(null)
+
+  function startPull(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!window.matchMedia("(max-width: 39.999rem)").matches) return
+    if ((event.target as Element).closest("button")) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    pull.current = { pointer: event.pointerId, startY: event.clientY, startAt: performance.now(), distance: 0 }
+  }
+
+  function movePull(event: ReactPointerEvent<HTMLDivElement>) {
+    const state = pull.current
+    const panel = contentRef.current
+    if (!state || state.pointer !== event.pointerId || !panel) return
+    state.distance = Math.max(0, event.clientY - state.startY)
+    panel.style.transition = "none"
+    panel.style.translate = `0 ${state.distance}px`
+  }
+
+  function endPull(cancelled: boolean) {
+    const state = pull.current
+    const panel = contentRef.current
+    pull.current = null
+    if (!state || !panel) return
+    const speed = state.distance / Math.max(1, performance.now() - state.startAt)
+    if (!cancelled && (state.distance > 96 || (state.distance > 24 && speed > 0.6))) {
+      // Leave the offset in place: the exit animation carries on from here.
+      onOpenChange(false)
+      return
+    }
+    panel.style.transition = "translate 240ms var(--ease-spring)"
+    panel.style.translate = ""
+  }
+
   return (
     /*
       Non-modal on purpose: the panel's job is to change what is behind it, so
@@ -423,6 +488,7 @@ export function SettingsPanel({
     */
     <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
       <SheetContent
+        ref={contentRef}
         withOverlay={false}
         side="float"
         className="flex flex-col"
@@ -435,28 +501,46 @@ export function SettingsPanel({
           if (target?.closest('[data-slot="dialog-content"]')) event.preventDefault()
         }}
       >
-        <SheetHeader>
+        <SheetHeader
+          data-scrolled={scrolled ? "true" : undefined}
+          onPointerDown={startPull}
+          onPointerMove={movePull}
+          onPointerUp={() => endPull(false)}
+          onPointerCancel={() => endPull(true)}
+          className="relative border-transparent transition-colors duration-150 data-[scrolled=true]:border-hairline max-sm:touch-none max-sm:pt-5"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute left-1/2 top-2 h-1 w-9 -translate-x-1/2 rounded-full bg-[color-mix(in_oklab,var(--ink)_22%,transparent)] sm:hidden"
+          />
           <div>
             <SheetTitle>外观与站点</SheetTitle>
             <p className="mt-0.5 text-[11px] text-ink-muted">改动即时生效，保存在这台设备上</p>
           </div>
           <SheetClose asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="关闭设置">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="关闭设置"
+              className="pointer-coarse:-mr-1.5 pointer-coarse:size-11"
+            >
               <X size={15} aria-hidden="true" />
             </Button>
           </SheetClose>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-1">
+        {/*
+          The gutter is reserved even when nothing overflows: with every group
+          folded the scrollbar would vanish, and the rows would widen by its width.
+        */}
+        <div
+          data-settings-scroll
+          onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
+          className="flex-1 overflow-y-auto overscroll-contain px-4 py-1 [scrollbar-gutter:stable]"
+        >
           <SettingsGroup title="外观" summary="主题 · 材质 · 简洁模式" defaultOpen>
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[12.5px] font-medium text-ink">简洁模式</p>
-                  <p className="mt-0.5 text-[11px] text-ink-muted">只留导航，所有文件夹一屏铺开</p>
-                </div>
-                <Switch checked={minimal} onChange={onMinimal} label="简洁模式" />
-              </div>
+              <SwitchRow title="简洁模式" hint="只留导航，所有文件夹一屏铺开" checked={minimal} onChange={onMinimal} />
 
               <ThemeGallery mode={themeMode} onChange={onThemeMode} />
 
@@ -465,7 +549,7 @@ export function SettingsPanel({
                 <MaterialGallery value={material} onChange={onMaterial} />
               </div>
 
-              <div className="space-y-1 border-t border-hairline pt-3">
+              <div className="space-y-1">
                 <FieldLabel hint={`${searchWidth}px`}>搜索框宽度</FieldLabel>
                 <Slider
                   aria-label="搜索框宽度"
@@ -477,10 +561,7 @@ export function SettingsPanel({
                 />
               </div>
 
-              <div className="flex items-center justify-between gap-3 border-t border-hairline pt-3">
-                <p className="text-[12.5px] text-ink">显示一言</p>
-                <Switch checked={quoteVisible} onChange={onQuoteVisible} label="显示一言" />
-              </div>
+              <SwitchRow title="显示一言" checked={quoteVisible} onChange={onQuoteVisible} />
             </div>
           </SettingsGroup>
 

@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useId, useRef, useState } from "react"
 import { ChevronDown } from "reicon-react"
 
 import { Collapse } from "@/components/Collapse"
+import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
 export function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: string }) {
@@ -42,7 +43,7 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(option.id)}
             className={cn(
-              "h-8 rounded-full text-[12px] font-medium transition-[background-color,color,box-shadow] duration-200",
+              "h-8 rounded-full text-[12px] font-medium transition-[background-color,color,box-shadow] duration-200 pointer-coarse:h-10",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
               active
                 ? "bg-[var(--mat-raised)] text-ink shadow-[var(--mat-raised-edge)]"
@@ -57,23 +58,62 @@ export function Segmented<T extends string>({
   )
 }
 
+/**
+ * A setting that is on or off. The whole row is the label, so the words toggle
+ * it too: a 38px switch alone is a small target, and on a phone the text is
+ * where the thumb lands first.
+ */
 export function SwitchRow({
   title,
   hint,
-  children,
+  checked,
+  onChange,
 }: {
   title: string
   hint?: string
-  children: React.ReactNode
+  checked: boolean
+  onChange: (checked: boolean) => void
 }) {
+  const hintId = useId()
+
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="text-[12.5px] font-medium text-ink">{title}</p>
-        {hint ? <p className="mt-0.5 text-[11px] text-ink-muted">{hint}</p> : null}
-      </div>
-      {children}
-    </div>
+    <label className="flex min-h-9 cursor-pointer items-center justify-between gap-3 pointer-coarse:min-h-11">
+      <span className="min-w-0">
+        <span className="block text-[12.5px] font-medium text-ink">{title}</span>
+        {hint ? (
+          <span id={hintId} className="mt-0.5 block text-[11px] text-ink-muted">
+            {hint}
+          </span>
+        ) : null}
+      </span>
+      <Switch
+        checked={checked}
+        onChange={onChange}
+        label={title}
+        aria-describedby={hint ? hintId : undefined}
+      />
+    </label>
+  )
+}
+
+/**
+ * After a block opens inside the panel, scroll just far enough to show what
+ * opened, never so far that its own header leaves the top. Runs once the
+ * height transition has settled, because before that there is nothing to show.
+ */
+export function revealOpened(element: HTMLElement | null) {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  window.setTimeout(
+    () => {
+      const scroller = element?.closest<HTMLElement>("[data-settings-scroll]")
+      if (!element || !scroller) return
+      const view = scroller.getBoundingClientRect()
+      const box = element.getBoundingClientRect()
+      const hidden = box.bottom - view.bottom
+      if (hidden <= 0) return
+      scroller.scrollBy({ top: Math.min(hidden, box.top - view.top), behavior: reduce ? "auto" : "smooth" })
+    },
+    reduce ? 0 : 320,
   )
 }
 
@@ -93,14 +133,18 @@ export function SettingsGroup({
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  const sectionRef = useRef<HTMLElement>(null)
 
   return (
-    <section className="border-b border-hairline last:border-b-0">
+    <section ref={sectionRef} className="border-b border-hairline last:border-b-0">
       <button
         type="button"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-        className="group flex w-full items-center gap-2 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        onClick={() => {
+          if (!open) revealOpened(sectionRef.current)
+          setOpen(!open)
+        }}
+        className="group flex min-h-11 w-full items-center gap-2 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         <span className="text-[13px] font-semibold text-ink">{title}</span>
         {summary ? <span className="truncate text-[11px] text-ink-muted">{summary}</span> : null}

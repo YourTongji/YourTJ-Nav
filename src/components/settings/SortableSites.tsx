@@ -202,7 +202,7 @@ export function SortableSites({
               style={rowStyle(site.id, index)}
               data-lifted={lifted || undefined}
               className={cn(
-                "sortable-row relative flex items-center gap-1.5 rounded-[12px] py-1.5 pl-0.5 pr-1.5",
+                "sortable-row relative flex items-center gap-1.5 rounded-[12px] py-1.5 pl-0.5 pr-1.5 pointer-coarse:gap-0.5 pointer-coarse:py-0.5 pointer-coarse:pr-0.5",
                 lifted ? "z-10 bg-[var(--mat-raised)] shadow-[var(--lift-float)]" : "hover:bg-accent",
               )}
             >
@@ -224,7 +224,7 @@ export function SortableSites({
                   }
                 }}
                 className={cn(
-                  "grid h-7 w-5 shrink-0 touch-none place-items-center rounded-md text-ink-muted transition-colors hover:text-ink",
+                  "grid h-7 w-5 shrink-0 touch-none place-items-center rounded-md text-ink-muted transition-colors hover:text-ink pointer-coarse:h-10 pointer-coarse:w-8",
                   "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                   lifted ? "cursor-grabbing text-ink" : "cursor-grab",
                 )}
@@ -245,7 +245,7 @@ export function SortableSites({
                 type="button"
                 aria-label={`编辑 ${site.title}`}
                 onClick={() => onEdit(site)}
-                className="grid size-7 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="grid size-7 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand pointer-coarse:size-10"
               >
                 <Pen size={13} aria-hidden="true" />
               </button>
@@ -253,7 +253,7 @@ export function SortableSites({
                 type="button"
                 aria-label={`删除 ${site.title}`}
                 onClick={() => onRemove(site.id)}
-                className="grid size-7 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent hover:text-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="grid size-7 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-accent hover:text-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand pointer-coarse:size-10"
               >
                 <Trash size={13} aria-hidden="true" />
               </button>
@@ -271,7 +271,7 @@ export function SortableSites({
               onReorder(next)
               setMessage("已按名称排列")
             }}
-            className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] text-ink-muted transition-colors hover:bg-accent hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] pointer-coarse:h-10 pointer-coarse:px-3 text-ink-muted transition-colors hover:bg-accent hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <Sort size={12} aria-hidden="true" />
             按名称排列
@@ -283,7 +283,7 @@ export function SortableSites({
                 onResetOrder()
                 setMessage("已恢复默认顺序")
               }}
-              className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] text-ink-muted transition-colors hover:bg-accent hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] pointer-coarse:h-10 pointer-coarse:px-3 text-ink-muted transition-colors hover:bg-accent hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <ArrowsRotate size={12} aria-hidden="true" />
               恢复默认顺序
