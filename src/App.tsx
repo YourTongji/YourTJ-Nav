@@ -40,6 +40,7 @@ import { useHeaderHandoff } from "@/hooks/use-header-handoff"
 import { useSearch } from "@/hooks/use-search"
 import { usePins } from "@/hooks/use-pins"
 import { useWallpaper } from "@/hooks/use-wallpaper"
+import { warmIcons } from "@/lib/icon-cache"
 import { clearRecent, pushRecent, readRecent } from "@/lib/recent-store"
 import { hostOf } from "@/lib/site-store"
 
@@ -95,6 +96,12 @@ export default function App() {
   })
 
   const folders = sites.folders
+
+  // Every logo, fetched and decoded at idle: switching folders paints from memory.
+  useEffect(
+    () => warmIcons(sites.allSites.flatMap((site) => (site.mark.kind === "logo" ? [site.mark.src] : []))),
+    [sites.allSites],
+  )
   const folder = folders.find((item) => item.id === activeFolder) ?? folders[0]
 
   useEffect(() => {
@@ -122,7 +129,7 @@ export default function App() {
     .slice(0, 4)
 
   function editSite(site: Site, folderId: string) {
-    setDraft(draftFromSite(site, folderId))
+    setDraft(draftFromSite(site, folderId, sites.iconOf(site.id)))
   }
 
   function addSite(folderId: string) {
@@ -349,6 +356,9 @@ export default function App() {
               url: value.url,
               description: hostOf(value.url),
               icon: value.icon,
+              plate: value.plate,
+              plateColor: value.plateColor,
+              shape: value.shape,
             })
             // The form's folder is where the site was opened from; a new pick moves it,
             // and the view follows so the result is visible, as it does after adding.
@@ -361,8 +371,10 @@ export default function App() {
               title: value.title,
               url: value.url,
               description: hostOf(value.url),
-              icon: value.icon,
               folder: value.folder,
+              ...(value.icon
+                ? { icon: value.icon, plate: value.plate, plateColor: value.plateColor, shape: value.shape }
+                : {}),
             })
             setActiveFolder(value.folder)
           }

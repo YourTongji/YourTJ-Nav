@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react"
 import { Link } from "reicon-react"
 
 import type { SiteMark } from "@/data/sites"
+import { clearMissing, isMissing, markMissing } from "@/lib/icon-cache"
 
 /**
  * A macaron tint per glyph, derived from the icon itself so the same site keeps
@@ -39,6 +40,8 @@ export function plateProps(mark: SiteMark) {
     "data-chip":
       mark.kind === "glyph" ? undefined : mark.kind === "letter" ? "light" : mark.chip,
     "data-fit": mark.kind === "logo" ? (mark.fit ?? "inset") : undefined,
+    style:
+      mark.kind === "logo" && mark.plate ? ({ "--plate": mark.plate } as CSSProperties) : undefined,
   }
 }
 
@@ -59,37 +62,42 @@ function LogoImage({
   mark: Extract<SiteMark, { kind: "logo" }>
   size: number
 }) {
-  const [broken, setBroken] = useState(false)
+  // A remembered miss draws the fallback at once instead of after a failed request.
+  const [broken, setBroken] = useState(() => isMissing(mark.src))
+  const [ready, setReady] = useState(false)
+  const ref = useRef<HTMLImageElement>(null)
+
+  // Already in memory (warmed, or seen on another page): no fade, no frame
+  // without it. Checked before paint, so a cached icon never blinks.
+  useLayoutEffect(() => {
+    const image = ref.current
+    if (image?.complete && image.naturalWidth > 0) setReady(true)
+  }, [])
 
   if (broken) {
     return <Link size={Math.round(size * 0.72)} weight="Filled" aria-hidden="true" className="plate-ink" />
   }
 
-  if (mark.fit === "fill") {
-    return (
-      <img
-        src={mark.src}
-        alt=""
-        width={64}
-        height={64}
-        loading="lazy"
-        decoding="async"
-        onError={() => setBroken(true)}
-      />
-    )
-  }
-
+  const fill = mark.fit === "fill"
   return (
     <img
+      ref={ref}
       src={mark.src}
       alt=""
-      width={size}
-      height={size}
-      loading="lazy"
+      width={fill ? 64 : size}
+      height={fill ? 64 : size}
       decoding="async"
-      onError={() => setBroken(true)}
-      className="object-contain"
-      style={{ width: size, height: size }}
+      data-ready={ready}
+      onLoad={() => {
+        setReady(true)
+        clearMissing(mark.src)
+      }}
+      onError={() => {
+        markMissing(mark.src)
+        setBroken(true)
+      }}
+      className={fill ? "tile-logo" : "tile-logo object-contain"}
+      style={fill ? undefined : { width: size, height: size }}
     />
   )
 }
@@ -120,7 +128,8 @@ export function Mark({ mark, size = 26 }: MarkProps) {
   }
 
   if (mark.kind === "logo") {
-    return <LogoImage mark={mark} size={size} />
+    // Keyed by address: a new icon is a new image, with its own load state.
+    return <LogoImage key={mark.src} mark={mark} size={size} />
   }
 
   return (

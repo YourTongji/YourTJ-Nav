@@ -1,4 +1,16 @@
+import { isShape, type IconShape, type PlateMode } from "@/lib/icon-look"
+
 export type CustomFolder = { id: string; label: string }
+
+/** How an icon sits on its plate; see lib/icon-look. All optional: unset is "automatic". */
+export type IconLookFields = {
+  /** The user's call on a plate behind a see-through icon. */
+  plate?: PlateMode
+  /** `#RRGGBB` the user picked; unset follows the icon's colour. */
+  plateColor?: string
+  /** Measured when the icon was chosen, where its pixels could be read. */
+  shape?: IconShape
+}
 
 export type AddedSite = {
   id: string
@@ -9,14 +21,15 @@ export type AddedSite = {
   icon?: string
   /** Folder id: one of the shipped folders, or a custom one. */
   folder: string
-}
+} & IconLookFields
 
 export type SitePatch = {
   title?: string
   url?: string
   description?: string
+  /** Empty restores the shipped icon. */
   icon?: string
-}
+} & IconLookFields
 
 export type SiteStoreData = {
   /** Sites the user created. */
@@ -48,6 +61,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
+function lookFields(entry: Record<string, unknown>): IconLookFields {
+  return {
+    ...(entry.plate === "on" || entry.plate === "off" ? { plate: entry.plate } : {}),
+    ...(typeof entry.plateColor === "string" && /^#[\da-f]{6}$/i.test(entry.plateColor)
+      ? { plateColor: entry.plateColor }
+      : {}),
+    ...(isShape(entry.shape) ? { shape: entry.shape } : {}),
+  }
+}
+
 /** Anything malformed is dropped rather than crashing the page on boot. */
 export function readSiteStore(): SiteStoreData {
   try {
@@ -73,6 +96,7 @@ export function readSiteStore(): SiteStoreData {
               description: typeof entry.description === "string" ? entry.description : "",
               // Dropping this here used to turn every custom icon back into a letter on reload.
               ...(typeof entry.icon === "string" && entry.icon ? { icon: entry.icon } : {}),
+              ...lookFields(entry),
             },
           ]
         })
@@ -87,9 +111,14 @@ export function readSiteStore(): SiteStoreData {
         })
       : []
 
-    const overrides = isRecord(parsed.overrides)
-      ? (parsed.overrides as Record<string, SitePatch>)
-      : {}
+    const overrides: Record<string, SitePatch> = {}
+    if (isRecord(parsed.overrides)) {
+      for (const [id, patch] of Object.entries(parsed.overrides)) {
+        if (!isRecord(patch)) continue
+        const text = (key: string) => (typeof patch[key] === "string" ? { [key]: patch[key] as string } : {})
+        overrides[id] = { ...text("title"), ...text("url"), ...text("description"), ...text("icon"), ...lookFields(patch) }
+      }
+    }
     const hidden = Array.isArray(parsed.hidden)
       ? parsed.hidden.filter((id): id is string => typeof id === "string")
       : []

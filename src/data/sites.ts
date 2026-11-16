@@ -36,8 +36,11 @@ export type Chip = "light" | "dark"
 
 export type SiteMark =
   | { kind: "glyph"; Icon: IconComponent }
-  /** A shipped logo file. `fill` lets an opaque square icon become the plate itself. */
-  | { kind: "logo"; src: string; chip: Chip; fit?: "inset" | "fill" }
+  /**
+   * A logo file. `fill` lets an opaque square icon become the plate itself;
+   * `tint` puts a see-through logo on a plate of the colour in `plate`.
+   */
+  | { kind: "logo"; src: string; chip: Chip | "tint"; fit?: "inset" | "fill"; plate?: string }
   /** A mark from the Reicon brand set, drawn in the brand's own colour. */
   | { kind: "brand"; Icon: BrandIconFn; chip: Chip }
   /** A site the user added: its first character on a light plate. */
