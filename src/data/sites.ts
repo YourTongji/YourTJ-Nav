@@ -225,13 +225,6 @@ const official: Site[] = [
     mark: glyph(Card),
   },
   {
-    id: "vpn",
-    title: "同济 VPN",
-    description: "校外访问校内资源",
-    url: "https://nic.tongji.edu.cn/9006/list.htm",
-    mark: glyph(Shield),
-  },
-  {
     id: "nic",
     title: "信息化办公室",
     description: "校园信息化服务",
