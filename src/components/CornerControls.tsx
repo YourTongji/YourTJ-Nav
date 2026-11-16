@@ -19,6 +19,8 @@ export function CornerControls({
   const loading = wallpaper.status === "loading"
 
   return (
+    // On a phone the footer reserves the row these float in, so the last line
+    // of the page never ends up under them.
     <div className="fixed bottom-4 right-4 z-30 flex items-center gap-2 sm:bottom-5 sm:right-5">
       <Tooltip>
         <TooltipTrigger asChild>
@@ -28,7 +30,7 @@ export function CornerControls({
             onClick={wallpaper.refresh}
             aria-busy={loading}
             aria-label="换一张壁纸"
-            className="relative size-10 rounded-full"
+            className="corner-button relative rounded-full"
           >
             {/*
               A ring that fills and fades while the next wallpaper loads. It sits
@@ -38,7 +40,7 @@ export function CornerControls({
               <svg
                 aria-hidden="true"
                 viewBox="0 0 48 48"
-                className="wallpaper-ring pointer-events-none absolute -inset-1 size-12 text-brand"
+                className="wallpaper-ring pointer-events-none absolute -inset-1 size-[calc(100%+0.5rem)] text-brand"
               >
                 <circle
                   cx="24"
@@ -71,7 +73,7 @@ export function CornerControls({
             size="icon"
             onClick={onOpenSettings}
             aria-label="外观与站点设置"
-            className="size-10 rounded-full"
+            className="corner-button rounded-full"
           >
             <Settings size={17} aria-hidden="true" />
           </Button>

@@ -70,9 +70,11 @@ function SheetContent({
           "data-[state=open]:duration-300 data-[state=closed]:duration-200",
           side === "float"
             ? cn(
-                "right-4 bottom-[4.75rem] h-[min(calc(100dvh-7.5rem),42rem)] w-[min(26rem,calc(100vw-2rem))]",
-                "rounded-[22px]",
-                "origin-bottom-right",
+                // A phone gets a bottom sheet within thumb reach; anything wider
+                // gets the card floating above the corner buttons.
+                "inset-x-2 bottom-2 h-[min(78dvh,42rem)] rounded-[24px] origin-bottom",
+                "sm:inset-x-auto sm:right-4 sm:bottom-[4.75rem] sm:h-[min(calc(100dvh-7.5rem),42rem)] sm:w-[min(26rem,calc(100vw-2rem))]",
+                "sm:rounded-[22px] sm:origin-bottom-right",
                 "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
                 "data-[state=open]:slide-in-from-bottom-3 data-[state=closed]:slide-out-to-bottom-2",
               )

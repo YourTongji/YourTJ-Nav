@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Check, Plus } from "reicon-react"
 
 import type { Folder } from "@/hooks/use-sites"
@@ -15,6 +15,45 @@ export function FolderTabs({ folders, active, onChange, onCreate }: FolderTabsPr
   const [creating, setCreating] = useState(false)
   const [label, setLabel] = useState("")
   const listRef = useRef<HTMLDivElement>(null)
+  // Which ends still hide tabs. On a phone six folders do not fit, and a row
+  // cut flush at the edge reads as complete; the hidden side fades instead.
+  const [edges, setEdges] = useState({ start: false, end: false })
+
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const measure = () => {
+      const max = list.scrollWidth - list.clientWidth
+      setEdges((previous) => {
+        const next = { start: list.scrollLeft > 2, end: list.scrollLeft < max - 2 }
+        return previous.start === next.start && previous.end === next.end ? previous : next
+      })
+    }
+    measure()
+    list.addEventListener("scroll", measure, { passive: true })
+    const observer = new ResizeObserver(measure)
+    observer.observe(list)
+    return () => {
+      list.removeEventListener("scroll", measure)
+      observer.disconnect()
+    }
+  }, [folders.length])
+
+  // The chosen tab is always fully in view, with room to see the next one.
+  useEffect(() => {
+    const list = listRef.current
+    const tab = list?.querySelector<HTMLElement>(`[data-folder="${active}"]`)
+    if (!list || !tab) return
+    const margin = 32
+    const left = tab.offsetLeft - list.offsetLeft
+    const right = left + tab.offsetWidth
+    let target = list.scrollLeft
+    if (left - margin < list.scrollLeft) target = left - margin
+    else if (right + margin > list.scrollLeft + list.clientWidth) target = right + margin - list.clientWidth
+    if (target === list.scrollLeft) return
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    list.scrollTo({ left: Math.max(0, target), behavior: calm ? "auto" : "smooth" })
+  }, [active])
 
   function commit() {
     const value = label.trim()
@@ -37,7 +76,9 @@ export function FolderTabs({ folders, active, onChange, onCreate }: FolderTabsPr
       ref={listRef}
       role="tablist"
       aria-label="文件夹"
-      className="flex items-center gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      data-fade-start={edges.start ? "true" : undefined}
+      data-fade-end={edges.end ? "true" : undefined}
+      className="scroll-fade flex items-center gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {folders.map((folder, index) => {
         const selected = folder.id === active

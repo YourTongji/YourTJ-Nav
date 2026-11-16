@@ -3,7 +3,6 @@ import { ArrowUpRight, Bubble } from "reicon-react"
 
 import { SearchBar } from "@/components/SearchBar"
 import type { SearchController } from "@/hooks/use-search"
-import { cn } from "@/lib/utils"
 
 /**
  * The nav bar. Its glass plate and the compact search are not switched on and
@@ -49,20 +48,14 @@ export function TopBar({
         Always mounted: fading a field in is cheaper and calmer than mounting it.
       */}
       <div
-        className="topbar-search absolute left-1/2 top-1/2 hidden w-[min(21rem,calc(100%-15rem))] md:block"
+        className="topbar-search absolute left-1/2 top-1/2"
         inert={!handedOff}
         aria-hidden={!handedOff}
       >
         <SearchBar variant="compact" search={search} shortcuts={handedOff} />
       </div>
 
-      <nav
-        aria-label="页面操作"
-        className={cn(
-          "relative shrink-0 items-center gap-1.5",
-          handedOff ? "hidden lg:flex" : "flex",
-        )}
-      >
+      <nav aria-label="页面操作" className="relative flex shrink-0 items-center gap-1.5">
         {/*
           The flagship, as a nav item rather than a banner: a glass pill with the
           brand colour on the glyph only, so it leads without shouting.
@@ -71,14 +64,20 @@ export function TopBar({
           href="https://f.yourtj.de"
           target="_blank"
           rel="noopener noreferrer"
-          className="nav-chip group flex h-9 items-center gap-1.5 rounded-full pl-3 pr-2.5 text-[12px] font-medium text-ink transition-[background-color,box-shadow,scale] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand active:scale-[0.96]"
+          aria-label="YourTJ 社区"
+          className="nav-chip group flex size-9 items-center justify-center gap-1.5 rounded-full text-[12px] font-medium text-ink transition-[background-color,box-shadow,scale] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand active:scale-[0.96] sm:w-auto sm:justify-start sm:pl-3 sm:pr-2.5"
         >
-          <Bubble size={13} aria-hidden="true" className="text-brand" />
-          <span className="whitespace-nowrap">YourTJ 社区</span>
+          {/*
+            Below 640px the chip keeps its place as a 36px glyph instead of
+            leaving the bar: the bar has the same three things at every width,
+            and the compact search gets the room between them.
+          */}
+          <Bubble size={15} aria-hidden="true" className="text-brand sm:size-[13px]" />
+          <span className="hidden whitespace-nowrap sm:inline">YourTJ 社区</span>
           <ArrowUpRight
             size={11}
             aria-hidden="true"
-            className="text-ink-muted transition-transform duration-150 group-hover:-translate-y-px group-hover:translate-x-px"
+            className="hidden text-ink-muted transition-transform duration-150 group-hover:-translate-y-px group-hover:translate-x-px sm:block"
           />
         </a>
       </nav>
