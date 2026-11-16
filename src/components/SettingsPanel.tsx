@@ -36,6 +36,8 @@ type SettingsPanelProps = {
   clock: ClockController
   material: MaterialId
   onMaterial: (material: MaterialId) => void
+  minimal: boolean
+  onMinimal: (minimal: boolean) => void
   onEditSite: (site: Site, folderId: string) => void
   onAddSite: (folderId: string) => void
 }
@@ -426,6 +428,8 @@ export function SettingsPanel({
   clock,
   material,
   onMaterial,
+  minimal,
+  onMinimal,
 }: SettingsPanelProps) {
   /*
     Opening this from the context menu used to flash and close: the menu's
@@ -471,8 +475,16 @@ export function SettingsPanel({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-1">
-          <SettingsGroup title="外观" summary="主题 · 材质" defaultOpen>
+          <SettingsGroup title="外观" summary="主题 · 材质 · 简洁模式" defaultOpen>
             <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[12.5px] font-medium text-ink">简洁模式</p>
+                  <p className="mt-0.5 text-[11px] text-ink-muted">只留导航，所有文件夹一屏铺开</p>
+                </div>
+                <Switch checked={minimal} onChange={onMinimal} label="简洁模式" />
+              </div>
+
               <ThemeGallery mode={themeMode} onChange={onThemeMode} />
 
               <div className="space-y-1.5">

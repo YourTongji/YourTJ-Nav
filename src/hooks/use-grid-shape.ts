@@ -21,10 +21,10 @@ export type GridShape = {
   rowGap: number
 }
 
-export function shapeFor(width: number, viewport: number, maxCols = MAX_COLS): GridShape {
+export function shapeFor(width: number, viewport: number): GridShape {
   const narrow = width < NARROW_BELOW
   const track = narrow ? NARROW : WIDE
-  const cols = Math.max(3, Math.min(maxCols, Math.floor((width + track.gap) / (track.min + track.gap))))
+  const cols = Math.max(3, Math.min(MAX_COLS, Math.floor((width + track.gap) / (track.min + track.gap))))
   // Phones and tablets page by thumb and scroll anyway, so a page runs one row
   // deeper there; a desktop keeps three rows of eight above the fold.
   const rows = viewport < 1024 ? 4 : 3
@@ -39,16 +39,34 @@ function estimateWidth() {
   return Math.min(viewport, 1180) - gutter * 2
 }
 
-export function useGridShape(ref: RefObject<HTMLElement | null>, maxCols = MAX_COLS) {
+/** A fixed track instead of the tile tracks, for layouts that are not the icon grid. */
+type Track = { min: number; narrowMin?: number; gap: number; maxCols: number }
+
+function shapeWith(width: number, viewport: number, track?: Track): GridShape {
+  if (!track) return shapeFor(width, viewport)
+  const min = width < NARROW_BELOW ? (track.narrowMin ?? track.min) : track.min
+  const cols = Math.max(1, Math.min(track.maxCols, Math.floor((width + track.gap) / (min + track.gap))))
+  return { cols, rows: 1, pageSize: cols, narrow: false, gap: track.gap, rowGap: track.gap }
+}
+
+export function useGridShape(ref: RefObject<HTMLElement | null>, track?: Track) {
   const [shape, setShape] = useState(() =>
-    shapeFor(estimateWidth(), typeof window === "undefined" ? 1440 : window.innerWidth, maxCols),
+    shapeWith(estimateWidth(), typeof window === "undefined" ? 1440 : window.innerWidth, track),
   )
+  const min = track?.min
+  const narrowMin = track?.narrowMin
+  const gap = track?.gap
+  const maxCols = track?.maxCols
 
   useLayoutEffect(() => {
     const element = ref.current
     if (!element) return
     const measure = () => {
-      const next = shapeFor(element.clientWidth, window.innerWidth, maxCols)
+      const next = shapeWith(
+        element.clientWidth,
+        window.innerWidth,
+        min === undefined ? undefined : { min, narrowMin, gap: gap ?? 8, maxCols: maxCols ?? 12 },
+      )
       setShape((previous) =>
         previous.cols === next.cols && previous.rows === next.rows && previous.narrow === next.narrow
           ? previous
@@ -59,7 +77,7 @@ export function useGridShape(ref: RefObject<HTMLElement | null>, maxCols = MAX_C
     const observer = new ResizeObserver(measure)
     observer.observe(element)
     return () => observer.disconnect()
-  }, [ref, maxCols])
+  }, [ref, min, narrowMin, gap, maxCols])
 
   return shape
 }
