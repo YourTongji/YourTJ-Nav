@@ -30,15 +30,17 @@ export function CornerControls({
       */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <a
-            href={feedbackUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="反馈问题或建议（GitHub Issue）"
-            className="corner-button corner-ghost grid place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            <ChatRoundDots size={17} aria-hidden="true" />
-          </a>
+          {/* The same chip as its neighbours: three buttons, one material. */}
+          <Button asChild variant="chip" size="icon" className="corner-button rounded-full">
+            <a
+              href={feedbackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="反馈问题或建议（GitHub Issue）"
+            >
+              <ChatRoundDots size={17} aria-hidden="true" />
+            </a>
+          </Button>
         </TooltipTrigger>
         <TooltipContent side="top">反馈问题或建议</TooltipContent>
       </Tooltip>
