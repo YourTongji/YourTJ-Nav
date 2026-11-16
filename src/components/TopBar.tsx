@@ -1,44 +1,36 @@
-import { useEffect, useState } from "react"
+import type { RefObject } from "react"
 import { ArrowUpRight, Bubble } from "reicon-react"
 
 import { SearchBar } from "@/components/SearchBar"
 import type { SearchController } from "@/hooks/use-search"
 import { cn } from "@/lib/utils"
 
+/**
+ * The nav bar. Its glass plate and the compact search are not switched on and
+ * off: `useHeaderHandoff` writes `--float` and `--handoff` onto it as the page
+ * scrolls, and `.topbar` in index.css blends both from those two numbers.
+ */
 export function TopBar({
-  compactSearch,
+  headerRef,
+  handedOff,
   search,
 }: {
-  compactSearch: boolean
+  headerRef: RefObject<HTMLElement | null>
+  /** True once the compact field owns the search: it takes clicks and shortcuts. */
+  handedOff: boolean
   search: SearchController
 }) {
-  const [compact, setCompact] = useState(false)
-
-  // IntersectionObserver rather than a scroll listener: the nav only needs to know
-  // whether the top sentinel is still on screen.
-  useEffect(() => {
-    const sentinel = document.getElementById("page-top")
-    if (!sentinel) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setCompact(!entry.isIntersecting),
-      { rootMargin: "64px 0px 0px 0px" },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [])
-
   return (
     <header
-      className={cn(
-        "sticky top-3 z-40 mx-auto flex h-14 w-[calc(100%-2rem)] max-w-[1180px] items-center justify-between gap-3 rounded-full pl-3 pr-2",
-        "origin-top transition-[transform,opacity,background-color,border-color,box-shadow] duration-[420ms] ease-out",
-        compact ? "glass-shell scale-[0.97] opacity-95 lg:scale-100" : "border border-transparent",
-      )}
+      ref={headerRef}
+      className="topbar sticky top-3 z-40 mx-auto flex h-14 items-center justify-between gap-3 rounded-full px-2.5"
     >
+      <span aria-hidden="true" className="topbar-plate glass-shell" />
+
       <a
         href="https://yourtj.de"
         aria-label="YourTJ 首页"
-        className="flex min-w-0 items-center gap-2.5 rounded-full pr-1 transition-[opacity,transform] duration-200 hover:opacity-75 active:scale-[0.96]"
+        className="relative flex shrink-0 items-center rounded-full transition-[opacity,scale] duration-200 hover:opacity-75 active:scale-[0.96]"
       >
         <img
           src={`${import.meta.env.BASE_URL}yourtj-logo.png`}
@@ -50,24 +42,25 @@ export function TopBar({
       </a>
 
       {/*
-        The hero field hands over to this one the moment it scrolls away, so the
+        The hero field hands over to this one as it slides under the bar, so the
         search is always one keystroke from where the eye already is. It is
         centred on the header itself rather than on the space between the logo
-        and the pill, otherwise it would sit 40px off the axis the hero used.
+        and the pill, otherwise it would sit off the axis the hero used.
+        Always mounted: fading a field in is cheaper and calmer than mounting it.
       */}
-      {compactSearch ? (
-        <div className="pointer-events-none absolute left-1/2 top-1/2 hidden w-[min(21rem,calc(100%-15rem))] -translate-x-1/2 -translate-y-1/2 animate-in fade-in-0 slide-in-from-top-1 duration-200 md:block">
-          <div className="pointer-events-auto">
-            <SearchBar variant="compact" search={search} />
-          </div>
-        </div>
-      ) : null}
+      <div
+        className="topbar-search absolute left-1/2 top-1/2 hidden w-[min(21rem,calc(100%-15rem))] md:block"
+        inert={!handedOff}
+        aria-hidden={!handedOff}
+      >
+        <SearchBar variant="compact" search={search} shortcuts={handedOff} />
+      </div>
 
       <nav
         aria-label="页面操作"
         className={cn(
-          "shrink-0 items-center gap-1.5",
-          compactSearch ? "hidden lg:flex" : "flex",
+          "relative shrink-0 items-center gap-1.5",
+          handedOff ? "hidden lg:flex" : "flex",
         )}
       >
         {/*
@@ -78,7 +71,7 @@ export function TopBar({
           href="https://f.yourtj.de"
           target="_blank"
           rel="noopener noreferrer"
-          className="nav-chip group flex h-8 items-center gap-1.5 rounded-full pl-2.5 pr-2 text-[12px] font-medium text-ink transition-[background-color,border-color] duration-150 hover:border-[color-mix(in_oklab,var(--brand)_45%,var(--hairline-strong))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand active:scale-[0.98]"
+          className="nav-chip group flex h-9 items-center gap-1.5 rounded-full pl-3 pr-2.5 text-[12px] font-medium text-ink transition-[background-color,border-color,scale] duration-150 hover:border-[color-mix(in_oklab,var(--brand)_45%,var(--hairline-strong))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand active:scale-[0.96]"
         >
           <Bubble size={13} aria-hidden="true" className="text-brand" />
           <span className="whitespace-nowrap">YourTJ 社区</span>
@@ -88,7 +81,6 @@ export function TopBar({
             className="text-ink-muted transition-transform duration-150 group-hover:-translate-y-px group-hover:translate-x-px"
           />
         </a>
-
       </nav>
     </header>
   )

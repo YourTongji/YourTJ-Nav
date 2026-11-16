@@ -34,7 +34,7 @@ import { useBoolPref } from "@/hooks/use-bool-pref"
 import { useClockPrefs } from "@/hooks/use-clock-prefs"
 import { useEnumPref } from "@/hooks/use-enum-pref"
 import { useNumberPref } from "@/hooks/use-number-pref"
-import { useScrolledPast } from "@/hooks/use-scrolled-past"
+import { useHeaderHandoff } from "@/hooks/use-header-handoff"
 import { useSearch } from "@/hooks/use-search"
 import { usePins } from "@/hooks/use-pins"
 import { useWallpaper } from "@/hooks/use-wallpaper"
@@ -78,8 +78,10 @@ export default function App() {
   const [activeFolder, setActiveFolder] = useState(readFolder)
   const [ctxSite, setCtxSite] = useState<Site | null>(null)
   const [recent, setRecent] = useState<string[]>(readRecent)
+  const headerRef = useRef<HTMLElement>(null)
+  const heroRef = useRef<HTMLElement>(null)
   const heroSearchRef = useRef<HTMLDivElement>(null)
-  const searchScrolledAway = useScrolledPast(heroSearchRef)
+  const handedOff = useHeaderHandoff({ header: headerRef, hero: heroRef, search: heroSearchRef })
 
   const folders = sites.folders
   const folder = folders.find((item) => item.id === activeFolder) ?? folders[0]
@@ -135,21 +137,19 @@ export default function App() {
       <div className="grain" aria-hidden="true" />
 
       <div className="relative z-10 flex min-h-dvh flex-col">
-        <div id="page-top" aria-hidden="true" className="h-px" />
+        <TopBar headerRef={headerRef} handedOff={handedOff} search={search} />
 
-        <TopBar compactSearch={searchScrolledAway} search={search} />
-
-        <main className="mx-auto w-full max-w-[1180px] flex-1 px-5 pb-4 sm:px-8">
+        <main className="page-frame flex-1 pb-4">
           <h1 className="sr-only">YourTJ 校园导航</h1>
 
-          <section className="pb-9 pt-[clamp(1.75rem,8vh,4rem)] sm:pb-11">
+          <section ref={heroRef} className="pb-9 pt-[clamp(1.75rem,8vh,4rem)] sm:pb-11">
             <Collapse open={clock.prefs.visible}>
               <div className="mb-5">
                 <Clock prefs={clock.prefs} />
               </div>
             </Collapse>
-            <div ref={heroSearchRef}>
-              <SearchBar search={search} shortcuts={!searchScrolledAway} width={searchWidth} />
+            <div ref={heroSearchRef} className="hero-search">
+              <SearchBar search={search} shortcuts={!handedOff} width={searchWidth} />
             </div>
             <PinnedBar
               pins={pinnedSites}

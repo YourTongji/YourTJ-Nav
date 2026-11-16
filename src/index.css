@@ -72,6 +72,19 @@
   --overlay-ink: oklch(0.985 0.003 250);
   --card-mat: oklch(0.88 0.006 250 / 0.68);
   --card-panel: oklch(0.99 0.002 250 / 0.78);
+
+  /* The page column. The nav bar is measured from these too, so its logo and
+     its last chip land on the same edges as the content below. */
+  --page-max: 1180px;
+  --page-gutter: 20px;
+  /* The nav bar's own inset: 56px tall, 36px items, 10px all round. */
+  --bar-inset: 10px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --page-gutter: 32px;
+  }
 }
 
 .dark {
@@ -428,6 +441,64 @@
     var(--mat-rim),
     0 0 0 3px color-mix(in oklab, var(--ink) 6%, transparent),
     0 18px 48px -20px var(--shade);
+}
+
+/*
+  The nav bar. Nothing here switches: useHeaderHandoff writes two numbers as
+  the page scrolls, and everything below is a function of them.
+    --float    the glass plate fades in just before content reaches the bar
+    --handoff  the hero search fades out as the compact one fades in
+  The bar is outdented by its own inset, so the logo and the last chip sit on
+  the content's edges rather than 10px inside them.
+*/
+.page-frame {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+}
+
+.topbar {
+  width: calc(100% - 2 * (var(--page-gutter) - var(--bar-inset)));
+  max-width: calc(var(--page-max) - 2 * (var(--page-gutter) - var(--bar-inset)));
+}
+
+.topbar-plate {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--float, 0);
+  /* Hidden, not just transparent, at the top: a backdrop filter costs a pass
+     even at opacity 0. */
+  visibility: hidden;
+}
+
+.topbar[data-float="true"] .topbar-plate {
+  visibility: visible;
+}
+
+.topbar-search {
+  opacity: var(--handoff, 0);
+  translate: -50% calc(-50% + (1 - var(--handoff, 0)) * 6px);
+  scale: calc(0.96 + 0.04 * var(--handoff, 0));
+  visibility: hidden;
+}
+
+.topbar[data-handoff="true"] .topbar-search {
+  visibility: visible;
+}
+
+.hero-search {
+  opacity: calc(1 - var(--handoff, 0));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still a cross-fade, so the handover reads; just no travel. */
+  .topbar-search {
+    translate: -50% -50%;
+    scale: 1;
+  }
 }
 
 /*
