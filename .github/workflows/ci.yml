@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# 同一个分支上新的提交会取消旧的一次，省时间也省额度。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 类型检查加构建。这一步同时验证了所有资源引用在根路径下能解析。
+      - name: Build
+        run: npm run build
+
+      # project page 部署时资源要带 /YourTJ-Nav/ 前缀，单独跑一次兜住这条路径。
+      - name: Build for a project page path
+        run: npm run build
+        env:
+          VITE_BASE: /YourTJ-Nav/
+
+      # 站点数据是纯文本，格式错了要在这里拦住，别等到部署。
+      # 只匹配缩进四格的条目，避免把分类数组那一行也算进来。
+      - name: Site data sanity check
+        run: |
+          set -e
+          test -f src/data/sites.ts
+          count=$(grep -cE '^    id: "' src/data/sites.ts)
+          echo "站点数：$count"
+          if [ "$count" -lt 40 ]; then
+            echo "::error::站点数量异常（$count），检查 src/data/sites.ts"
+            exit 1
+          fi
+          dupes=$(grep -oE '^    id: "[^"]*"' src/data/sites.ts | sort | uniq -d)
+          if [ -n "$dupes" ]; then
+            echo "::error::站点 id 重复：$dupes"
+            exit 1
+          fi

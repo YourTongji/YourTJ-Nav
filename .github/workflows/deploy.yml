@@ -1,0 +1,56 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Pages 部署需要这三个权限，缺一个都会在 deploy 步骤失败。
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一个部署，但不取消已在进行的——半路取消会留下不完整的站点。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # base_path 是当前站点的前缀：project page 为 /<repo>，自定义域名为空。
+      # 拼成 VITE_BASE 后，同一份代码在两种部署下都能正确取到资源。
+      - name: Resolve base path
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_BASE: ${{ steps.pages.outputs.base_path }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

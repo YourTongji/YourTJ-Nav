@@ -1,0 +1,58 @@
+name: Site request → PR
+
+# 把「补充站点」Issue 变成一个只改 src/data/sites.ts 的 PR。
+# 维护者 Approve 后由 auto-merge.yml 合入，deploy.yml 随后重新发布。
+on:
+  issues:
+    types: [opened, edited, reopened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: site-request-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  propose:
+    # 只处理带 site-request 标签的 Issue；模板会自动打上这个标签。
+    if: contains(github.event.issue.labels.*.name, 'site-request')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply issue to src/data/sites.ts
+        id: apply
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: node scripts/add-site.mjs
+
+      - name: Type-check the result
+        run: |
+          npm ci
+          npx tsc -b
+
+      - name: Open or update the pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: site/issue-${{ github.event.issue.number }}
+          base: main
+          delete-branch: true
+          labels: site-request
+          add-paths: src/data/sites.ts
+          commit-message: "feat(sites): 补充站点 #${{ github.event.issue.number }}"
+          title: "feat(sites): ${{ github.event.issue.title }}"
+          body: |
+            由 #${{ github.event.issue.number }} 自动生成，只改动 `src/data/sites.ts`。
+
+            - 站点：${{ github.event.issue.title }}
+            - 分类与地址来自 Issue 表单，解析结果见上一步日志
+
+            **审核要点**：分类是否合适、地址是否可访问、是否是推广或镜像站。
+            Approve 后会自动合入并触发部署；需要改内容请直接编辑 Issue，PR 会跟着更新。

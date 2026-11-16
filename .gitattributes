@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+# 二进制素材不要做行尾转换，否则会损坏文件
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.webp binary
+*.woff2 binary
+*.mp4 binary
+
+# GitHub 语言统计里把素材排除掉
+public/** linguist-vendored

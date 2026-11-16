@@ -1,0 +1,73 @@
+name: '➕ Add site / 补充站点'
+description: 往导航页加一个站点。提交后机器人会自动开一个 PR，维护者批准即合入并部署。
+title: '[Site] '
+labels: ['site-request']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        填完直接提交即可，**不需要自己改代码**。提交后 `site-request` 机器人会：
+        1. 在 `src/data/sites.ts` 对应分类里追加这一条；
+        2. 开一个 PR 并 @ 你；
+        3. 维护者点 Approve 后自动合入，GitHub Pages 重新部署。
+
+        如果地址已经存在，机器人会在 PR 里说明并跳过，不会重复添加。
+
+  - type: input
+    id: title
+    attributes:
+      label: 站点名称
+      description: 显示在图标下方的名字，尽量短（8 个字以内最好看）。
+      placeholder: 教务系统
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: 站点地址
+      description: 完整 URL，含 https:// 或 http://。
+      placeholder: https://jw.tongji.edu.cn
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 分类
+      description: 放错分类也没关系，维护者可以在 review 时改。
+      options:
+        - 学校官网
+        - 课程常用
+        - 学术资源
+        - 人工智能
+        - 实用工具
+        - 正版申请
+    validations:
+      required: true
+
+  - type: input
+    id: description
+    attributes:
+      label: 一句话说明
+      description: 补充名称没说完的信息，会显示在最近访问卡片里。
+      placeholder: 选课、成绩与培养方案
+    validations:
+      required: true
+
+  - type: input
+    id: icon
+    attributes:
+      label: 图标地址（可选）
+      description: 留空则自动取 `https://<域名>/favicon.ico`。有官方图标的话填图片直链更好。
+      placeholder: https://example.edu.cn/logo.png
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 这个站点面向同济学生，且不是付费推广或镜像站
+          required: true

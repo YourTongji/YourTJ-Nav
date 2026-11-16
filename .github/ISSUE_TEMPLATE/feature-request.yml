@@ -1,0 +1,33 @@
+name: '💡 Feature request / 功能建议'
+description: 想要新的能力，或者觉得现有交互可以更好。
+title: '[Feature] '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先说清**场景**再说方案：谁在什么情况下遇到什么麻烦，比「加一个按钮」有用得多。
+
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 场景与问题
+      description: 你在做什么的时候卡住了？现在只能怎么绕过去？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你希望的方案
+      description: 具体到交互层面最好；有参考产品可以贴链接。
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 怎么算做完了
+      description: 一条条可观察的结果，例如「窄屏下置顶永远一行，超出可横向滚动」。
+    validations:
+      required: false

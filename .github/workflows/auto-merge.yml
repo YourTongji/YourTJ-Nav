@@ -1,0 +1,37 @@
+name: Auto-merge approved site PRs
+
+# 只对 site-request 机器人生成的 PR 生效：维护者点 Approve 即合入，
+# 合入后 deploy.yml 自动重新发布。人工 PR 不受影响，仍按常规流程走。
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: |
+      github.event.review.state == 'approved' &&
+      contains(github.event.pull_request.labels.*.name, 'site-request') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Squash merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR" --squash --delete-branch --repo "$GITHUB_REPOSITORY"
+
+      - name: Comment on the source issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          ISSUE=$(printf '%s' "$PR_BODY" | grep -o '#[0-9]\+' | head -1 | tr -d '#')
+          if [ -n "$ISSUE" ]; then
+            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+              --body "已合入：$PR_URL。站点会在下一次部署后生效。"
+          fi

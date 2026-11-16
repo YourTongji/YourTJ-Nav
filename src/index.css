@@ -1,0 +1,853 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./fonts-wenkai.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Latin is Geist; CJK falls back to the platform UI face. */
+/* Bundled, not fetched from a CDN: the clock must not wait on a third party. */
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/InstrumentSerif-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+  Shape rule for the whole page:
+  - content surfaces (tiles, panels) are 16px
+  - interactive controls (buttons, chips, the search shell) are full pill
+  Nothing else gets a radius.
+*/
+:root {
+  color-scheme: light;
+  --radius: 1rem;
+
+  --background: oklch(0.975 0.004 250);
+  --foreground: oklch(0.22 0.02 262);
+  --card: oklch(1 0 0 / 0.62);
+  --card-foreground: oklch(0.22 0.02 262);
+  --popover: oklch(0.995 0.002 250 / 0.94);
+  --popover-foreground: oklch(0.22 0.02 262);
+  --primary: oklch(0.3 0.025 262);
+  --primary-foreground: oklch(0.98 0.003 250);
+  --secondary: oklch(1 0 0 / 0.58);
+  --secondary-foreground: oklch(0.26 0.02 262);
+  --muted: oklch(0.22 0.02 262 / 0.07);
+  --muted-foreground: oklch(0.46 0.014 262);
+  --accent: oklch(0.22 0.02 262 / 0.07);
+  --accent-foreground: oklch(0.2 0.02 262);
+  --destructive: oklch(0.55 0.19 25);
+  --border: oklch(0.2 0.02 262 / 0.12);
+  --input: oklch(0.2 0.02 262 / 0.14);
+  --brand: oklch(0.52 0.135 245);
+  --ring: oklch(0.52 0.135 245 / 0.6);
+
+  /* page atmosphere */
+  --scrim-from: oklch(0.99 0.003 250 / 0.58);
+  --scrim-to: oklch(0.955 0.006 250 / 0.8);
+  --veil: oklch(1 0 0 / 0.34);
+  --ink: oklch(0.21 0.02 262);
+  /* Two text levels only: at 11px over a photo, a third grey cannot hold 4.5:1. */
+  --ink-muted: oklch(0.42 0.014 262);
+  --glass: oklch(1 0 0 / 0.5);
+  --glass-hover: oklch(1 0 0 / 0.8);
+  --hairline: oklch(0.2 0.02 262 / 0.1);
+  --hairline-strong: oklch(0.2 0.02 262 / 0.2);
+  --shade: oklch(0.4 0.04 260 / 0.16);
+  --scrollbar-thumb: oklch(0.35 0.02 262 / 0.32);
+  --brand-ink: oklch(0.99 0 0);
+  --bloom: 0.34;
+  /* The veil pushes the photo toward the theme's own background, so raising it
+     always helps the text instead of fighting it. */
+  --overlay-ink: oklch(0.985 0.003 250);
+  --card-mat: oklch(0.88 0.006 250 / 0.68);
+  --card-panel: oklch(0.99 0.002 250 / 0.78);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.16 0.014 262);
+  --foreground: oklch(0.96 0.004 260);
+  --card: oklch(1 0 0 / 0.06);
+  --card-foreground: oklch(0.96 0.004 260);
+  --popover: oklch(0.21 0.014 262 / 0.96);
+  --popover-foreground: oklch(0.96 0.004 260);
+  --primary: oklch(0.95 0.004 260);
+  --primary-foreground: oklch(0.19 0.018 262);
+  --secondary: oklch(1 0 0 / 0.1);
+  --secondary-foreground: oklch(0.95 0.004 260);
+  --muted: oklch(1 0 0 / 0.1);
+  --muted-foreground: oklch(0.77 0.009 260);
+  --accent: oklch(1 0 0 / 0.1);
+  --accent-foreground: oklch(0.97 0.004 260);
+  --destructive: oklch(0.68 0.17 22);
+  --border: oklch(1 0 0 / 0.14);
+  --input: oklch(1 0 0 / 0.18);
+  --brand: oklch(0.8 0.105 228);
+  --ring: oklch(0.8 0.105 228 / 0.65);
+
+  /* A touch heavier than before: on a bright wallpaper the backdrop landed at
+     mid-grey, where nothing dark-on-dark or light-on-light can reach 3:1. */
+  --scrim-from: oklch(0.13 0.012 262 / 0.7);
+  --scrim-to: oklch(0.1 0.012 262 / 0.9);
+  --veil: oklch(0.08 0.01 262 / 0.28);
+  --ink: oklch(0.97 0.003 260);
+  --ink-muted: oklch(0.845 0.007 260);
+  --glass: oklch(1 0 0 / 0.07);
+  --glass-hover: oklch(1 0 0 / 0.15);
+  --hairline: oklch(1 0 0 / 0.12);
+  --hairline-strong: oklch(1 0 0 / 0.22);
+  --shade: oklch(0 0 0 / 0.38);
+  --scrollbar-thumb: oklch(0.92 0.01 260 / 0.34);
+  --brand-ink: oklch(0.16 0.012 262);
+  --bloom: 0.3;
+  --overlay-ink: oklch(0.12 0.012 262);
+  --card-mat: oklch(0.12 0.012 262 / 0.64);
+  --card-panel: oklch(0.235 0.014 262 / 0.72);
+}
+
+/*
+  Material tokens live outside @layer components on purpose: --glass and
+  --glass-hover are declared unlayered in :root/.dark, and an unlayered rule
+  always beats a layered one, so an override inside the layer would never win.
+*/
+:root,
+[data-material="frosted"] {
+  --mat-blur: 24px;
+  --mat-saturate: 165%;
+  /* contrast() flattens the backdrop before the tint goes on: that, not more
+     opacity, is what makes glass read as glass instead of a grey slab. */
+  --mat-filter: blur(24px) saturate(165%) contrast(0.76) brightness(1.06);
+  --mat-filter-chip: blur(14px) saturate(165%) contrast(0.78) brightness(1.05);
+  --mat-surface: color-mix(in oklab, var(--background) 52%, transparent);
+  --mat-chip: color-mix(in oklab, var(--background) 50%, transparent);
+  --mat-chip-hover: color-mix(in oklab, var(--background) 66%, transparent);
+  --mat-rim: inset 0 1px 0 oklch(1 0 0 / 0.26);
+  --mat-card-panel: var(--card-panel);
+  --mat-card-mat: var(--card-mat);
+  --mat-panel: color-mix(in oklab, var(--background) 82%, transparent);
+  /* A wash of light across the top edge: what separates glass from a flat tint. */
+  --mat-sheen: linear-gradient(180deg, oklch(1 0 0 / 0.18), oklch(1 0 0 / 0) 52%);
+  --mat-noise: none;
+}
+
+[data-material="frosted"].dark {
+  --mat-filter: blur(24px) saturate(150%) contrast(0.88) brightness(0.76);
+  --mat-filter-chip: blur(14px) saturate(150%) contrast(0.9) brightness(0.78);
+}
+
+/* Denser and less blurred: the backdrop is read through a heavier sheet. */
+[data-material="acrylic"] {
+  --mat-blur: 30px;
+  --mat-saturate: 118%;
+  --mat-filter: blur(30px) saturate(118%) contrast(0.88) brightness(1.02);
+  --mat-filter-chip: blur(18px) saturate(118%) contrast(0.9) brightness(1.02);
+  --mat-surface: color-mix(in oklab, var(--background) 80%, transparent);
+  --mat-chip: color-mix(in oklab, var(--background) 78%, transparent);
+  --mat-chip-hover: color-mix(in oklab, var(--background) 90%, transparent);
+  --mat-rim:
+    inset 0 1px 0 oklch(1 0 0 / 0.34),
+    inset 0 0 0 1px oklch(0.2 0.02 262 / 0.04);
+  --mat-card-panel: color-mix(in oklab, var(--background) 88%, transparent);
+  --mat-card-mat: color-mix(in oklab, var(--background) 72%, transparent);
+  --mat-panel: color-mix(in oklab, var(--background) 90%, transparent);
+  --mat-sheen: linear-gradient(180deg, oklch(1 0 0 / 0.14), oklch(1 0 0 / 0) 42%);
+  /* Acrylic is defined by its grain, not only its blur. */
+  --mat-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.13'/%3E%3C/svg%3E");
+  --glass: color-mix(in oklab, var(--background) 80%, transparent);
+  --glass-hover: color-mix(in oklab, var(--background) 90%, transparent);
+}
+
+/* Thin, heavily bent, lit at the rim rather than washed from the top. */
+[data-material="liquid"] {
+  --mat-blur: 42px;
+  --mat-saturate: 200%;
+  --mat-filter: blur(42px) saturate(200%) contrast(0.7) brightness(1.1);
+  --mat-filter-chip: blur(26px) saturate(200%) contrast(0.72) brightness(1.08);
+  --mat-surface: color-mix(in oklab, var(--background) 24%, transparent);
+  --mat-chip: color-mix(in oklab, var(--background) 22%, transparent);
+  --mat-chip-hover: color-mix(in oklab, var(--background) 36%, transparent);
+  --mat-rim:
+    inset 0 1px 0 oklch(1 0 0 / 0.8),
+    inset 0 -1px 0 oklch(1 0 0 / 0.24),
+    inset 0 0 22px oklch(1 0 0 / 0.1),
+    inset 0 0 0 1px oklch(1 0 0 / 0.14);
+  --mat-card-panel: color-mix(in oklab, var(--background) 64%, transparent);
+  --mat-card-mat: color-mix(in oklab, var(--background) 40%, transparent);
+  --mat-panel: color-mix(in oklab, var(--background) 66%, transparent);
+  /* Liquid glass is lit where the curve faces the light, not washed from the top. */
+  --mat-sheen: radial-gradient(150% 95% at 14% -26%, oklch(1 0 0 / 0.34), transparent 60%);
+  --mat-noise: none;
+  --glass: color-mix(in oklab, var(--background) 46%, transparent);
+  --glass-hover: color-mix(in oklab, var(--background) 62%, transparent);
+}
+
+/*
+  Focus on the search pill is a quiet border and a whisper of a halo, not a 2px
+  brand-coloured ring: the field is already the loudest thing on the page, and a
+  blue frame around it read as an error state.
+*/
+/* The cat on the search bar's top-left rim. */
+.search-cat {
+  position: absolute;
+  /* Past the rounded corner (radius 28) so the body rests on the flat rim. */
+  left: 22px;
+  /* Sits on the rim, not in it: the body's bottom edge is just above the border. */
+  bottom: calc(100% + 1px);
+  width: 58px;
+  aspect-ratio: 72 / 55;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.search-cat-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.22));
+}
+
+/* Squash, leap, land, settle — an easter egg that never fights the loop. */
+@keyframes cat-hop {
+  0% {
+    transform: translateY(0) scale(1, 1);
+  }
+  16% {
+    transform: translateY(2px) scale(1.07, 0.9);
+  }
+  40% {
+    transform: translateY(-13px) scale(0.94, 1.08);
+  }
+  58% {
+    transform: translateY(-15px) scale(1, 1);
+  }
+  80% {
+    transform: translateY(0) scale(1.08, 0.9);
+  }
+  92% {
+    transform: translateY(0) scale(0.98, 1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+.search-cat[data-hop="true"] {
+  animation: cat-hop 620ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-cat[data-hop="true"] {
+    animation: none;
+  }
+}
+
+/*
+  Dark mode: the scrim leaves a mid-grey backdrop, so the cat gets a lift and a
+  hairline light rim. The rim is an outline on the silhouette, not a glow
+  underneath it — one pass, no pooled shadow.
+*/
+.dark .search-cat-img {
+  /* No rim and no glow: the lift alone has to carry the contrast. */
+  filter:
+    brightness(3.1) saturate(0.85)
+    drop-shadow(0 1px 2px oklch(0 0 0 / 0.35));
+}
+
+@media (max-width: 640px) {
+  .search-cat {
+    left: 18px;
+    width: 48px;
+  }
+}
+
+/*
+  The pinned row is one line on every screen. `w-max min-w-full` is what makes
+  that work: it centres when the pins fit and starts at the left edge when they
+  do not — a plain `justify-center` inside a scroller clips the first items and
+  leaves them unreachable.
+*/
+.pinned-row {
+  scrollbar-width: none;
+}
+
+.pinned-row::-webkit-scrollbar {
+  display: none;
+}
+
+.pinned-row li {
+  flex: 0 0 auto;
+}
+
+.pinned-row[data-scrollable="true"] {
+  mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+}
+
+/*
+  Wallpaper ring around the corner button. The arc grows over 1.5s, holds, fades,
+  then starts again — indeterminate, but it reads as progress rather than a
+  spinner. The circumference is 2 * pi * 22 ≈ 138.
+*/
+.wallpaper-ring {
+  transform: rotate(-90deg);
+}
+
+.wallpaper-ring circle {
+  stroke-dasharray: 138;
+  animation: wallpaper-ring 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes wallpaper-ring {
+  0% {
+    stroke-dashoffset: 138;
+    opacity: 0.25;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallpaper-ring circle {
+    animation: none;
+    stroke-dasharray: 60 78;
+    opacity: 0.9;
+  }
+}
+
+/* Wallpaper fetch indicator: a soft highlight travelling along a hairline. */
+@keyframes wallpaper-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.wallpaper-sweep {
+  animation: wallpaper-sweep 1.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallpaper-sweep {
+    animation: none;
+    width: 100%;
+    opacity: 0.55;
+  }
+}
+
+.search-shell {
+  transition:
+    border-color 180ms var(--ease-out-soft),
+    box-shadow 180ms var(--ease-out-soft);
+}
+
+.search-shell:focus-within {
+  border-color: color-mix(in oklab, var(--ink) 28%, transparent);
+  box-shadow:
+    var(--mat-rim),
+    0 0 0 3px color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 48px -20px var(--shade);
+}
+
+/*
+  Panels, menus and the settings sheet. One class, so every floating surface
+  answers to the material instead of only the search bar.
+*/
+.mat-panel {
+  background-color: var(--mat-panel);
+  background-image: var(--mat-noise), var(--mat-sheen);
+  border: 1px solid var(--hairline-strong);
+  backdrop-filter: blur(calc(var(--mat-blur) * 0.85)) saturate(var(--mat-saturate));
+  -webkit-backdrop-filter: blur(calc(var(--mat-blur) * 0.85)) saturate(var(--mat-saturate));
+}
+
+
+@theme inline {
+  --font-clock: "Instrument Serif", "Geist", serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    "HarmonyOS Sans SC", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC",
+    "Microsoft YaHei", sans-serif;
+  --font-kai: "LXGW WenKai", "Kaiti SC", "STKaiti", "KaiTi", ui-serif, serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-glass: var(--glass);
+  --color-glass-hover: var(--glass-hover);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  --ease-out-soft: cubic-bezier(0.22, 0.8, 0.3, 1);
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    /* Set by the boot script from the wallpaper cache; a gradient when empty. */
+    background-image: var(--boot-wall, none);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: oklch(0.34 0.05 250);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /*
+      Reserve the scrollbar gutter permanently. Without it, a scrollbar that
+      appears or disappears changes the layout width, and the fixed wallpaper
+      rescales with `cover` - which reads as the photo drifting sideways.
+    */
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  /* Same idea for the classic WebKit bars: a hairline thumb on a clear track. */
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-color: var(--scrollbar-thumb);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--ink-muted) 62%, transparent);
+  }
+
+  body {
+    min-height: 100dvh;
+    margin: 0;
+    background-color: var(--background);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
+    overscroll-behavior-y: none;
+  }
+
+  /* One focus treatment for the whole page, visible over photo and glass.
+     The outline follows each element's own radius. */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--brand) 30%, transparent);
+    color: var(--ink);
+  }
+
+  input::placeholder {
+    color: var(--ink-muted);
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* The wallpaper layer stack: two slots so a new photo can fade in. */
+  .wallpaper-layer {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    display: block;
+    /* 100vw/100dvh, not inset:0: locking body scroll removes the scrollbar,
+       which would otherwise widen this layer and rescale `cover`. */
+    width: 100vw;
+    height: 100dvh;
+    object-fit: cover;
+    object-position: center;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    /* Scaled past the viewport so a blur radius never exposes the edge. */
+    filter: blur(var(--wall-blur, 0px));
+    transform: scale(1.1);
+    transition:
+      opacity 900ms var(--ease-out-soft),
+      transform 1400ms var(--ease-out-soft);
+    will-change: opacity, transform;
+  }
+
+  .wallpaper-layer[data-visible="true"] {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+
+  /* The user-facing "遮罩" control: pushes the picture toward the theme's ink. */
+  .page-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-color: var(--overlay-ink);
+    opacity: var(--wall-overlay, 0);
+    transition: opacity 200ms var(--ease-out-soft);
+  }
+
+  /* Keeps text readable over any photo, in both appearances. */
+  .page-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-image:
+      radial-gradient(
+        120% 80% at 50% 30%,
+        var(--veil) 0%,
+        transparent 62%
+      ),
+      linear-gradient(180deg, var(--scrim-from) 0%, var(--scrim-to) 100%);
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.28;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+
+  /*
+    Surface material. One attribute on <html> restyles every floating pane:
+    the search bar, the nav, the chips, the recent cards and the panels.
+    `--mat-*` is read by .glass-shell / .nav-chip / .recent-* below.
+  */
+  .glass-shell {
+    background-color: var(--mat-surface);
+    background-image: var(--mat-noise), var(--mat-sheen);
+    border: 1px solid var(--hairline-strong);
+    box-shadow:
+      var(--mat-rim),
+      0 18px 48px -20px var(--shade);
+    backdrop-filter: var(--mat-filter);
+    -webkit-backdrop-filter: var(--mat-filter);
+    transition: background-color 220ms var(--ease-out-soft);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-shell,
+    .mat-panel,
+    /* The selected folder tab is glass too; without a blur it reads as tinted
+     plastic next to the search bar. */
+  [role="tab"][aria-selected="true"] {
+    backdrop-filter: var(--mat-filter-chip);
+    -webkit-backdrop-filter: var(--mat-filter-chip);
+  }
+
+  .nav-chip {
+      background-color: var(--popover);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  /*
+    Floating controls sit over the photo, and at the top of the page the scrim is
+    at its weakest. A white-glass chip would make a dark-theme icon wash out on a
+    bright wallpaper, so the chip takes the theme's own background colour.
+  */
+  /* The selected folder tab is glass too; without a blur it reads as tinted
+     plastic next to the search bar. */
+  [role="tab"][aria-selected="true"] {
+    backdrop-filter: var(--mat-filter-chip);
+    -webkit-backdrop-filter: var(--mat-filter-chip);
+  }
+
+  .nav-chip {
+    background-color: var(--mat-chip);
+    background-image: var(--mat-noise), var(--mat-sheen);
+    border: 1px solid var(--hairline-strong);
+    backdrop-filter: var(--mat-filter-chip);
+    -webkit-backdrop-filter: var(--mat-filter-chip);
+    transition: background-color 160ms var(--ease-out-soft);
+  }
+
+  .nav-chip:hover {
+    background-color: var(--mat-chip-hover);
+  }
+
+  /*
+    Recent cards copy lumno's construction exactly:
+
+      .recent-mat     the board - a tinted mount, 7px around the sheet and
+                      11px below it, and it is what tilts on hover
+        .recent-panel the sheet - glass, clipped to 104px so the title's fourth
+                      line waits below the fold
+        .recent-url   printed on the board under the sheet, always visible
+
+    On hover the sheet grows 20px upward and lifts 20px out of the board; the
+    matching negative margin keeps the board - and the URL printed on it - still.
+  */
+  .recent-card {
+    --sheet-rest: 104px;
+    --sheet-lift: 20px;
+    display: block;
+    transform-origin: 50% 100%;
+  }
+
+  .recent-mat {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    border-radius: 25px;
+    padding: 7px 7px 11px;
+    background-color: var(--mat-card-mat);
+    border: 1px solid var(--hairline);
+    box-shadow: 0 10px 26px -20px var(--shade);
+    transition:
+      transform 240ms var(--ease-spring),
+      box-shadow 240ms var(--ease-spring);
+  }
+
+  .recent-card:hover .recent-mat,
+  .recent-card:focus-visible .recent-mat {
+    transform: rotate(-2deg) scale(1.014);
+    box-shadow: 0 22px 46px -26px var(--shade);
+  }
+
+  .recent-panel {
+    position: relative;
+    display: block;
+    height: var(--sheet-rest);
+    padding: 12px;
+    border-radius: 18px;
+    background-color: var(--mat-card-panel);
+    background-image: var(--mat-noise), var(--mat-sheen);
+    border: 1px solid var(--hairline);
+    /* Frosted, not opaque: the wallpaper reads through the sheet. */
+    backdrop-filter: var(--mat-filter);
+    -webkit-backdrop-filter: var(--mat-filter);
+    overflow: hidden;
+    transition:
+      height 240ms var(--ease-spring),
+      transform 240ms var(--ease-spring),
+      margin-bottom 240ms var(--ease-spring);
+  }
+
+  .recent-card:hover .recent-panel,
+  .recent-card:focus-visible .recent-panel {
+    height: calc(var(--sheet-rest) + var(--sheet-lift));
+    transform: translateY(calc(var(--sheet-lift) * -1));
+    margin-bottom: calc(var(--sheet-lift) * -1);
+  }
+
+  .recent-desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  /* The sheet grows by exactly one line, so hover uncovers a fourth. */
+  .recent-card:hover .recent-desc,
+  .recent-card:focus-visible .recent-desc {
+    -webkit-line-clamp: 4;
+  }
+
+  .recent-url {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 14px;
+    padding-inline: 4px;
+    color: var(--ink-muted);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .recent-panel {
+      background-color: var(--popover);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  /* Lit top edge of the sheet, dark theme only. */
+  .dark .recent-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    background-image: linear-gradient(180deg, oklch(1 0 0 / 0.16), transparent 60%);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .recent-card:hover .recent-mat,
+    .recent-card:focus-visible .recent-mat {
+      transform: none;
+    }
+
+    .recent-card:hover .recent-panel,
+    .recent-card:focus-visible .recent-panel {
+      height: calc(var(--sheet-rest) + var(--sheet-lift));
+      transform: none;
+      margin-bottom: calc(var(--sheet-lift) * -1);
+    }
+  }
+
+  /*
+    Every tile plate is the same white mount, in both themes. Real logo files
+    already sit on white; glyph tiles used to take the theme's glass colour and
+    turned into dark squares in dark mode, which made one grid look like two.
+  */
+  .nav-tile-plate {
+    background-color: oklch(0.985 0.002 250);
+    border: 1px solid oklch(1 0 0 / 0.5);
+    transition:
+      background-color 160ms var(--ease-out-soft),
+      border-color 160ms var(--ease-out-soft),
+      transform 160ms var(--ease-out-soft),
+      box-shadow 160ms var(--ease-out-soft);
+  }
+
+  .nav-tile:hover .nav-tile-plate,
+  .nav-tile:focus-visible .nav-tile-plate {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -14px var(--shade);
+  }
+
+  /* The mount brightens on hover; only a dark mount (white-on-dark logos) darkens. */
+  .nav-tile:hover .nav-tile-plate:not([data-chip="dark"]),
+  .nav-tile:focus-visible .nav-tile-plate:not([data-chip="dark"]) {
+    background-color: oklch(1 0 0);
+  }
+
+  .nav-tile:hover .nav-tile-plate[data-chip="dark"],
+  .nav-tile:focus-visible .nav-tile-plate[data-chip="dark"] {
+    background-color: oklch(0.2 0.014 262);
+  }
+
+  .nav-tile:active .nav-tile-plate {
+    transform: scale(0.96) translateY(0);
+  }
+
+  /* Where a dragged tile would land. */
+  .nav-tile[data-drop="true"] .nav-tile-plate {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand) 45%, transparent);
+  }
+
+  /*
+    A real logo only reads on the surface it was drawn for: brand-coloured marks
+    want a light chip, the white "on dark" variants want a dark one. Glyph tiles
+    keep the plain glass plate.
+  */
+  /*
+    Brand chips are opaque on purpose. A logo file carries its own background
+    and its own rounded corners; a translucent plate lets the wallpaper show
+    through those corners, which reads as a grey halo around the mark.
+  */
+  .nav-tile-plate[data-chip="light"] {
+    background-color: oklch(0.985 0.002 250);
+    border-color: oklch(1 0 0 / 0.6);
+  }
+
+  /* A glyph on a white mount: fixed ink, so it cannot invert with the theme. */
+  .plate-ink {
+    color: oklch(0.34 0.022 262);
+  }
+
+  .nav-tile-plate[data-chip="dark"] {
+    background-color: oklch(0.235 0.014 262);
+    border-color: oklch(1 0 0 / 0.16);
+  }
+
+  .nav-tile-plate[data-fit="fill"] {
+    overflow: hidden;
+  }
+
+  .nav-tile-plate[data-fit="fill"] img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+}

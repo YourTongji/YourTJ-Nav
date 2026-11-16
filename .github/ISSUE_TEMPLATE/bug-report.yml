@@ -1,0 +1,50 @@
+name: '🐛 Bug Report / 问题反馈'
+description: 页面显示或交互不对时用这个。
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        描述**实际看到的现象**即可，不必先分析原因。截图请脱敏，不要附凭据。
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境
+      description: 浏览器与版本、系统、屏幕宽度、是否开了深色模式、用的什么壁纸。
+      placeholder: |
+        Browser / version:
+        OS:
+        Window width:
+        Theme: light / dark / system
+        Wallpaper source: 动漫 / 风景 / 自定义
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述
+      description: 什么操作之后出现了什么，期望是什么。偶发问题写清频率。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开导航页
+        2. 右键某个站点
+        3. 点「编辑」
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 截图或补充
+      description: 拖图片进来即可。控制台报错也可以贴在这里。
+    validations:
+      required: false
