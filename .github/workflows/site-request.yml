@@ -57,6 +57,9 @@ jobs:
         continue-on-error: true
         uses: peter-evans/create-pull-request@v6
         with:
+          # 组织默认禁止 GITHUB_TOKEN 建 PR。配了 SITE_BOT_TOKEN（细粒度 PAT，
+          # 只给 Pull requests 读写）就用它，否则退回 GITHUB_TOKEN。
+          token: ${{ secrets.SITE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           branch: site/issue-${{ github.event.issue.number }}
           base: main
           delete-branch: true
