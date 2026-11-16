@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # 由 site-request.yml 在机器人生成 PR 之后手动触发。
+  # GITHUB_TOKEN 建出来的 PR 不会再触发 pull_request 事件，但 workflow_dispatch 是例外。
+  workflow_dispatch:
 
 permissions:
   contents: read

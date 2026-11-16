@@ -10,6 +10,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  actions: write
 
 concurrency:
   group: site-request-${{ github.event.issue.number }}
@@ -75,6 +76,15 @@ jobs:
 
             **审核要点**：分类是否合适、地址是否可访问、是否是推广或镜像站。
             Approve 后会自动合入并触发部署；要改内容请直接编辑 Issue，PR 会跟着更新。
+
+      # 机器人生成的 PR 不会触发 pull_request，CI 不会自己跑。
+      # workflow_dispatch 不受这个限制，手动点一次。
+      - name: Trigger CI on the branch
+        if: steps.pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: site/issue-${{ github.event.issue.number }}
+        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
 
       # 补上标签，方便后续按标签筛选，也让 labeled 事件成为第二次触发的入口。
       - name: Label the issue
