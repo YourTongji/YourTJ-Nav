@@ -340,10 +340,28 @@
   padding: 0;
   border: 0;
   background: none;
-  cursor: pointer;
+  cursor: grab;
   transform-origin: 50% 100%;
+  /* It can be dragged along the rim with a finger too. */
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+}
+
+/* Picked up: a little off the rim, leaning into the pull (SearchCat.tsx). */
+.search-cat[data-drag="true"] {
+  cursor: grabbing;
+}
+
+.search-cat[data-drag="true"] .search-cat-img {
+  transform: translateY(-6px) rotate(var(--cat-tilt, 0deg)) scale(1.04);
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-cat[data-drag="true"] .search-cat-img {
+    transform: none;
+  }
 }
 
 .search-cat-img {

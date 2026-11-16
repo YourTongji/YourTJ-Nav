@@ -49,6 +49,7 @@ components/  界面。只有这里碰 DOM，data 和 lib 不认识 React
 | `yourtj-nav-search-width` | localStorage | 搜索框宽度 |
 | `yourtj-nav-quote` | localStorage | 一言开关 |
 | `yourtj-nav-cat` | localStorage | 搜索栏小猫开关 |
+| `yourtj-nav-cat-spot` | localStorage | 小猫在搜索框上沿的位置，0 到 1 |
 | `yourtj-nav-clock` | localStorage | 时钟整组设置，一个 JSON |
 | `tj-nav` / `wallpaper` | IndexedDB | 自定义壁纸的 Blob 列表 |
 

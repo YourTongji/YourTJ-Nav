@@ -1,4 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react"
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
+} from "react"
 import { EyeClosed } from "reicon-react"
 
 import {
@@ -41,40 +50,60 @@ function gulp(shell: HTMLElement | null, amount: number, delay: number) {
   )
 }
 
+type Rim = {
+  /** Pixels per unit of `--cat-spot`: how far 0 is from 1. */
+  track: number
+  /** Stretches of the rim, as spot ranges, where the cat would sit on the clock. */
+  blocked: [number, number][]
+}
+
 /**
- * Where the egg comes up, as a fraction of the rim the cat can sit on. Random,
- * but never under anything marked `data-cat-avoid` (the clock): the cat stays
- * where it hatched, and it should not sit on the time.
+ * The flat top of the pill the cat can sit on, in the same inset and track
+ * index.css positions it with, minus whatever is marked `data-cat-avoid` (the
+ * clock): the cat should never come to rest on the time.
  */
-function pickSpot(button: HTMLElement, shell: HTMLElement) {
+function measureRim(button: HTMLElement, shell: HTMLElement): Rim {
   const rim = shell.getBoundingClientRect()
   const cat = button.getBoundingClientRect()
-  // The same inset and track index.css positions the cat with.
   const inset = Number.parseFloat(getComputedStyle(button).getPropertyValue("--cat-inset")) || 22
   const start = rim.left + inset
-  const track = Math.max(0, rim.width - 2 * inset - cat.width)
+  const track = Math.max(1, rim.width - 2 * inset - cat.width)
   // The band the cat occupies above the rim, plus room for a hop.
   const top = rim.top - cat.height - 18
   const blocked = [...document.querySelectorAll<HTMLElement>("[data-cat-avoid]")]
     .filter((element) => !element.closest("[inert]"))
     .map((element) => element.getBoundingClientRect())
     .filter((box) => box.width > 0 && box.bottom > top && box.top < rim.top)
+    // 20px of air: the time's digits are not all one width, so it breathes by ~16px as it ticks.
+    .map((box): [number, number] => [
+      (box.left - 20 - cat.width - start) / track,
+      (box.right + 20 - start) / track,
+    ])
+  return { track, blocked }
+}
 
-  const free: number[] = []
-  for (let step = 0; step <= 40; step += 1) {
-    const left = start + (track * step) / 40
-    const right = left + cat.width
-    if (blocked.every((box) => right + 6 < box.left || left - 6 > box.right)) free.push(step / 40)
-  }
-  if (!free.length) return 0
-  return free[Math.floor(Math.random() * free.length)]
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
+const isFree = (rim: Rim, spot: number) => rim.blocked.every(([lo, hi]) => spot <= lo || spot >= hi)
+
+/** Where a cat let go over the clock slides to: the closest free spot. */
+function nearestFree(rim: Rim, spot: number) {
+  const candidates = [spot, ...rim.blocked.flat()].map(clamp01).filter((value) => isFree(rim, value))
+  if (!candidates.length) return 0
+  return candidates.reduce((best, value) => (Math.abs(value - spot) < Math.abs(best - spot) ? value : best))
+}
+
+/** Where the egg comes up: anywhere free along the rim. */
+function randomFree(rim: Rim) {
+  const free = Array.from({ length: 41 }, (_, step) => step / 40).filter((value) => isFree(rim, value))
+  return free.length ? free[Math.floor(Math.random() * free.length)] : 0
 }
 
 /**
- * The cat on the hero search bar. Click to make it hop; right-click, or the
- * switch in settings, to send it away. It leaves by rolling along the rim and
- * sinking into the pill, and comes back by hatching from an egg the pill pushes
- * up somewhere along the rim.
+ * The cat on the hero search bar. Click to make it hop; drag it, or use the
+ * arrow keys, to move it along the rim; right-click, or the switch in
+ * settings, to send it away. It leaves by rolling along the rim and sinking
+ * into the pill, and comes back by hatching from an egg the pill pushes up
+ * somewhere along the rim.
  *
  * Everything moves with the Web Animations API on transform and opacity only,
  * and the egg exists only while it is on screen.
@@ -82,11 +111,16 @@ function pickSpot(button: HTMLElement, shell: HTMLElement) {
 export function SearchCat({
   visible,
   onHide,
+  spot,
+  onSpot,
   shellRef,
   fieldRef,
 }: {
   visible: boolean
   onHide: () => void
+  /** Where along the rim it sits, 0 to 1; remembered, so it stays where it was put. */
+  spot: number
+  onSpot: (spot: number) => void
   /** The pill: it squashes as it swallows the cat or pushes the egg out. */
   shellRef: RefObject<HTMLElement | null>
   /** Where keyboard focus goes once the cat it was on has gone. */
@@ -95,13 +129,23 @@ export function SearchCat({
   const calm = usePrefersReducedMotion()
   const [present, setPresent] = useState(visible)
   const [phase, setPhase] = useState<Phase>("rest")
-  const [spot, setSpot] = useState(0)
   const [hopping, setHopping] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const eggRef = useRef<HTMLSpanElement>(null)
   const settled = useRef(visible)
-  const spotRef = useRef(0)
+  const spotRef = useRef(spot)
+  const drag = useRef<{
+    pointer: number
+    startX: number
+    from: number
+    rim: Rim
+    moved: boolean
+    lastX: number
+    lastAt: number
+    still: number
+  } | null>(null)
+  const dragged = useRef(false)
   const hiding = useRef(false)
   const fromKeyboard = useRef(false)
 
@@ -171,10 +215,10 @@ export function SearchCat({
         .catch(() => {})
     } else {
       // Chosen here, once the cat is laid out, so the rim and the clock can be measured.
-      const next = shell ? pickSpot(button, shell) : 0
+      const next = shell ? randomFree(measureRim(button, shell)) : 0
       spotRef.current = next
       button.style.setProperty("--cat-spot", String(next))
-      setSpot(next)
+      onSpot(next)
 
       const egg = eggRef.current
       if (calm || !egg) {
@@ -232,14 +276,123 @@ export function SearchCat({
     }
 
     return () => running.forEach((animation) => animation.cancel())
+    // onSpot only stores the value: it is left out so a new function never restarts the hatch.
   }, [phase, present, calm, shellRef, fieldRef])
+
+  useLayoutEffect(() => {
+    if (!drag.current) spotRef.current = spot
+  }, [spot])
 
   // Restart the hop even when it is clicked mid-air: drop the flag, then set it
   // on the next frame so the animation runs from the top again.
   function hop() {
+    if (dragged.current) {
+      dragged.current = false
+      return
+    }
     if (phase !== "rest") return
     setHopping(false)
     requestAnimationFrame(() => setHopping(true))
+  }
+
+  /**
+   * Put the cat down at `target`. `from` is where it visibly is now, so a cat
+   * dropped over the clock slides the rest of the way instead of jumping, and
+   * `lifted` lands it with a small squash.
+   */
+  function settle(target: number, from: number, track: number, lifted: boolean) {
+    const button = buttonRef.current
+    const img = imgRef.current
+    if (!button || !img) return
+    spotRef.current = target
+    button.style.setProperty("--cat-spot", String(target))
+    onSpot(target)
+    if (calm) return
+    const shift = (from - target) * track
+    const tilt = button.style.getPropertyValue("--cat-tilt") || "0deg"
+    img.animate(
+      lifted
+        ? [
+            { transform: `translate(${shift}px, -6px) rotate(${tilt}) scale(1.04)` },
+            { transform: "translate(0, 1px) rotate(0deg) scale(1.06, 0.92)", offset: 0.62 },
+            { transform: "translate(0, 0) rotate(0deg) scale(1)" },
+          ]
+        : [{ transform: `translate(${shift}px, 0)` }, { transform: "translate(0, 0)" }],
+      { duration: (lifted ? 260 : 180) + Math.min(Math.abs(shift), 160), easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    )
+  }
+
+  function onPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
+    const shell = shellRef.current
+    // A touch drag may never be followed by a click, so the last drag must not eat this one.
+    dragged.current = false
+    if (phase !== "rest" || !shell || (event.pointerType === "mouse" && event.button !== 0)) return
+    // Captured straight away: a quick flick can leave the cat before the first move arrives.
+    event.currentTarget.setPointerCapture(event.pointerId)
+    drag.current = {
+      pointer: event.pointerId,
+      startX: event.clientX,
+      from: spotRef.current,
+      rim: measureRim(event.currentTarget, shell),
+      moved: false,
+      lastX: event.clientX,
+      lastAt: event.timeStamp,
+      still: 0,
+    }
+  }
+
+  function onPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const state = drag.current
+    const button = event.currentTarget
+    if (!state || state.pointer !== event.pointerId) return
+    const dx = event.clientX - state.startX
+    if (!state.moved) {
+      // A click wobbles a pixel or two; only a real pull picks the cat up.
+      if (Math.abs(dx) < 4) return
+      state.moved = true
+      button.dataset.drag = "true"
+    }
+    const next = clamp01(state.from + dx / state.rim.track)
+    spotRef.current = next
+    button.style.setProperty("--cat-spot", String(next))
+    // Lean into the pull, harder the faster it goes, and straighten up when it stops.
+    const speed = (event.clientX - state.lastX) / Math.max(8, event.timeStamp - state.lastAt)
+    button.style.setProperty("--cat-tilt", `${Math.max(-14, Math.min(14, speed * 9))}deg`)
+    state.lastX = event.clientX
+    state.lastAt = event.timeStamp
+    window.clearTimeout(state.still)
+    state.still = window.setTimeout(() => button.style.setProperty("--cat-tilt", "0deg"), 90)
+  }
+
+  function endDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const state = drag.current
+    if (!state || state.pointer !== event.pointerId) return
+    drag.current = null
+    window.clearTimeout(state.still)
+    if (!state.moved) return
+    dragged.current = true
+    const button = event.currentTarget
+    const from = spotRef.current
+    // Measured again at the drop: the clock may have changed width since the pick-up.
+    const rim = shellRef.current ? measureRim(button, shellRef.current) : state.rim
+    settle(nearestFree(rim, from), from, rim.track, true)
+    delete button.dataset.drag
+    button.style.removeProperty("--cat-tilt")
+  }
+
+  function onKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    const shell = shellRef.current
+    if (phase !== "rest" || !shell || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return
+    event.preventDefault()
+    const rim = measureRim(event.currentTarget, shell)
+    const dir = event.key === "ArrowRight" ? 1 : -1
+    const from = spotRef.current
+    let next = clamp01(from + dir * 0.05)
+    // Step over the clock rather than onto it.
+    const across = rim.blocked.find(([lo, hi]) => next > lo && next < hi)
+    if (across) next = clamp01(dir > 0 ? across[1] : across[0])
+    if (!isFree(rim, next) || next === from) return
+    settle(next, from, rim.track, false)
   }
 
   if (!present) return null
@@ -252,9 +405,15 @@ export function SearchCat({
           type="button"
           aria-label="摸摸猫"
           data-hop={hopping ? "true" : undefined}
+          aria-keyshortcuts="ArrowLeft ArrowRight"
           data-phase={phase === "rest" ? undefined : phase}
           style={{ "--cat-spot": spot } as CSSProperties}
           onClick={hop}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onKeyDown={onKeyDown}
           onContextMenu={(event) => {
             // Shift+F10 or the menu key: focus should land somewhere sensible after.
             fromKeyboard.current = event.currentTarget.matches(":focus-visible")

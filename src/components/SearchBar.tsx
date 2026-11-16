@@ -56,6 +56,9 @@ type SearchBarProps = {
   /** The cat on the hero's rim, and how to send it away from its own menu. */
   cat?: boolean
   onHideCat?: () => void
+  /** Where along the rim the cat sits, 0 to 1. */
+  catSpot?: number
+  onCatSpot?: (spot: number) => void
 }
 
 export function SearchBar({
@@ -67,6 +70,8 @@ export function SearchBar({
   onVisit,
   cat = false,
   onHideCat,
+  catSpot = 0,
+  onCatSpot,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
@@ -383,7 +388,14 @@ export function SearchBar({
         field, the engine and the submit button first.
       */}
       {compact ? null : (
-        <SearchCat visible={cat} onHide={() => onHideCat?.()} shellRef={formRef} fieldRef={inputRef} />
+        <SearchCat
+          visible={cat}
+          onHide={() => onHideCat?.()}
+          spot={catSpot}
+          onSpot={(spot) => onCatSpot?.(spot)}
+          shellRef={formRef}
+          fieldRef={inputRef}
+        />
       )}
     </form>
 
