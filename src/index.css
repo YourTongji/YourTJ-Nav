@@ -591,6 +591,28 @@
   The bar is outdented by its own inset, so the logo and the last chip sit on
   the content's edges rather than 10px inside them.
 */
+/* Rows that step aside for a dragged one; the dragged row itself follows the pointer untransitioned. */
+.sortable-row {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+.sortable-sites[data-dragging] .sortable-row {
+  user-select: none;
+}
+
+.sortable-sites[data-settling] .sortable-row {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sortable-row {
+    transition: background-color 150ms ease-out;
+  }
+}
+
 /* 简洁模式 has no hero to centre and rows instead of tiles: it takes the room. */
 [data-view="minimal"] {
   --page-max: 1440px;

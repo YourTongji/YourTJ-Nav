@@ -254,6 +254,19 @@ export function useSites() {
     [update],
   )
 
+  /** Drops a folder's manual order: it goes back to the shipped order, new sites first. */
+  const resetOrder = useCallback(
+    (folderId: string) => {
+      update((current) => {
+        const { [folderId]: _dropped, ...order } = current.order
+        return { ...current, order }
+      })
+    },
+    [update],
+  )
+
+  const hasOrder = useCallback((folderId: string) => Boolean(store.order[folderId]), [store])
+
   const addFolder = useCallback(
     (label: string) => {
       const folder = { id: newId("f"), label: label.trim() || "新文件夹" }
@@ -317,6 +330,8 @@ export function useSites() {
     moveSite,
     removeSite,
     reorderFolder,
+    resetOrder,
+    hasOrder,
     addFolder,
     renameFolder,
     removeFolder,
