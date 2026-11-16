@@ -439,6 +439,43 @@
   }
 }
 
+/*
+  The feedback button: no plate until the pointer arrives, then the same glass
+  as its neighbours. A touch screen has no hover to reveal it, so there it
+  wears the plate from the start.
+*/
+.corner-ghost {
+  color: var(--ink-muted);
+  background-color: transparent;
+  box-shadow: 0 0 #0000;
+  transition:
+    background-color 160ms var(--ease-out-soft),
+    box-shadow 160ms var(--ease-out-soft),
+    color 160ms var(--ease-out-soft),
+    scale 150ms var(--ease-out-soft);
+}
+
+.corner-ghost:hover,
+.corner-ghost:focus-visible {
+  color: var(--ink);
+  background-color: var(--mat-tint-hover);
+  box-shadow: var(--mat-edge), var(--lift-plate);
+}
+
+.corner-ghost:active {
+  scale: 0.96;
+}
+
+@media (hover: none) {
+  .corner-ghost {
+    color: var(--ink);
+    background-color: var(--mat-tint);
+    background-image: var(--mat-noise), var(--mat-sheen);
+    box-shadow: var(--mat-edge), var(--mat-bevel), var(--lift-plate);
+    backdrop-filter: var(--mat-filter-chip);
+  }
+}
+
 /* A sideways row that still hides something fades on that side only. */
 .scroll-fade {
   --fade-start: 0px;

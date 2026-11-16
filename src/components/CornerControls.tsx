@@ -1,7 +1,8 @@
-import { Image, Settings } from "reicon-react"
+import { ChatRoundDots, Image, Settings } from "reicon-react"
 
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { feedbackUrl } from "@/data/project"
 import type { WallpaperController } from "@/hooks/use-wallpaper"
 import { cn } from "@/lib/utils"
 
@@ -22,6 +23,26 @@ export function CornerControls({
     // On a phone the footer reserves the row these float in, so the last line
     // of the page never ends up under them.
     <div className="fixed bottom-4 right-4 z-30 flex items-center gap-2 sm:bottom-5 sm:right-5">
+      {/*
+        Feedback, after lumno's corner: the quietest of the three, a bare glyph
+        that only takes on glass under the pointer, so it is there when wanted
+        and never competes with the two controls that change the page.
+      */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <a
+            href={feedbackUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="反馈问题或建议（GitHub Issue）"
+            className="corner-button corner-ghost grid place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <ChatRoundDots size={17} aria-hidden="true" />
+          </a>
+        </TooltipTrigger>
+        <TooltipContent side="top">反馈问题或建议</TooltipContent>
+      </Tooltip>
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
