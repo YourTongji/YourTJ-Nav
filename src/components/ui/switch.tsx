@@ -1,3 +1,5 @@
+import type * as React from "react"
+
 import { cn } from "@/lib/utils"
 
 /**
@@ -9,14 +11,16 @@ export function Switch({
   onChange,
   label,
   className,
+  ...props
 }: {
   checked: boolean
   onChange: (checked: boolean) => void
   label: string
   className?: string
-}) {
+} & Omit<React.ComponentProps<"button">, "onChange">) {
   return (
     <button
+      {...props}
       type="button"
       role="switch"
       aria-checked={checked}

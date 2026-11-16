@@ -1,7 +1,6 @@
 import { Collapse } from "@/components/Collapse"
-import { FieldLabel, Segmented } from "@/components/settings/primitives"
+import { FieldLabel, Segmented, SwitchRow } from "@/components/settings/primitives"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
 import type { ClockController, ClockInk } from "@/hooks/use-clock-prefs"
 
 const INK_OPTIONS: { id: ClockInk; label: string }[] = [
@@ -20,14 +19,7 @@ export function ClockSection({ clock }: { clock: ClockController }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[12.5px] text-ink">显示时间</p>
-        <Switch
-          checked={prefs.visible}
-          onChange={(visible) => update({ visible })}
-          label="显示时间"
-        />
-      </div>
+      <SwitchRow title="显示时间" checked={prefs.visible} onChange={(visible) => update({ visible })} />
 
       {/* Collapsed rather than unmounted, so turning it off never jumps the panel. */}
       <Collapse open={prefs.visible}>
@@ -88,22 +80,9 @@ export function ClockSection({ clock }: { clock: ClockController }) {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-hairline pt-3">
-            <p className="text-[12.5px] text-ink">显示秒</p>
-            <Switch
-              checked={prefs.seconds}
-              onChange={(seconds) => update({ seconds })}
-              label="显示秒"
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[12.5px] text-ink">12 小时制</p>
-            <Switch
-              checked={prefs.hour12}
-              onChange={(hour12) => update({ hour12 })}
-              label="12 小时制"
-            />
+          <div>
+            <SwitchRow title="显示秒" checked={prefs.seconds} onChange={(seconds) => update({ seconds })} />
+            <SwitchRow title="12 小时制" checked={prefs.hour12} onChange={(hour12) => update({ hour12 })} />
           </div>
         </div>
       </Collapse>
