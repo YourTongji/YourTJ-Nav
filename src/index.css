@@ -502,6 +502,49 @@
 }
 
 /*
+  Site grid entrances. One short move per user action, never on first paint:
+  a folder switch only fades, paging slides 12px the way it went. Both start
+  from 20% rather than 0, so the grid never shows a blank frame between pages.
+*/
+@keyframes site-page-fade {
+  from {
+    opacity: 0.2;
+  }
+}
+
+@keyframes site-page-forward {
+  from {
+    opacity: 0.2;
+    translate: 12px 0;
+  }
+}
+
+@keyframes site-page-back {
+  from {
+    opacity: 0.2;
+    translate: -12px 0;
+  }
+}
+
+.site-page[data-motion="fade"] {
+  animation: site-page-fade 180ms var(--ease-out-soft);
+}
+
+.site-page[data-motion="forward"] {
+  animation: site-page-forward 220ms var(--ease-out-soft);
+}
+
+.site-page[data-motion="back"] {
+  animation: site-page-back 220ms var(--ease-out-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-page[data-motion] {
+    animation: none;
+  }
+}
+
+/*
   Panels, menus and the settings sheet. One class, so every floating surface
   answers to the material instead of only the search bar.
 */

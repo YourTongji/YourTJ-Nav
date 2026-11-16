@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, Plus } from "reicon-react"
 
 import { SiteTile } from "@/components/SiteTile"
@@ -48,9 +48,20 @@ type SiteGridProps = {
   onVisit: (id: string) => void
 }
 
+/**
+ * How the next page arrives. Only a user's own move animates: a folder switch
+ * fades, paging slides a few pixels the way it went, and the first render does
+ * neither.
+ */
+type Motion = "none" | "fade" | "forward" | "back"
+
 export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
-  const [page, setPage] = useState(0)
+  const [view, setView] = useState({ folder: folder.id, page: 0, motion: "none" as Motion })
   const pageSize = usePageSize()
+  // Switching folders starts the new one on its first page. Adjusting state
+  // during render, not in an effect, so the old folder's page never paints.
+  if (view.folder !== folder.id) setView({ folder: folder.id, page: 0, motion: "fade" })
+  const page = view.page
   // The id lives in a ref as well: dragstart and drop can land in the same
   // task, and a state update would not be visible to the drop handler yet.
   const dragIdRef = useRef<string | null>(null)
@@ -87,6 +98,32 @@ export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
   const current = Math.min(page, pages - 1)
   const pageSites = folder.sites.slice(current * pageSize, current * pageSize + pageSize)
 
+  function turn(delta: -1 | 1) {
+    const next = current + delta
+    if (next < 0 || next >= pages) return
+    setView({ folder: folder.id, page: next, motion: delta > 0 ? "forward" : "back" })
+  }
+
+  /*
+    A short last page would pull the pager and everything under it upward, and
+    the next click would land somewhere else. The tallest page seen in this
+    folder holds the floor until the folder or the page size changes.
+  */
+  const listRef = useRef<HTMLUListElement>(null)
+  const [floor, setFloor] = useState({ key: "", height: 0 })
+  const floorKey = `${folder.id}:${pageSize}`
+  useLayoutEffect(() => {
+    const height = listRef.current?.offsetHeight ?? 0
+    setFloor((previous) =>
+      previous.key === floorKey
+        ? height > previous.height
+          ? { key: floorKey, height }
+          : previous
+        : { key: floorKey, height },
+    )
+  })
+  const minHeight = pages > 1 && floor.key === floorKey ? floor.height : undefined
+
   function drop(targetId: string) {
     const moving = dragIdRef.current
     if (!moving || moving === targetId) return
@@ -113,7 +150,17 @@ export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
 
   return (
     <div>
-      <ul className="grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 sm:gap-y-5 md:grid-cols-6 lg:grid-cols-8">
+      {/*
+        Keyed by page, so each move remounts the list and its one short entrance
+        starts over: rapid clicks restart it instead of stacking.
+      */}
+      <ul
+        key={`${folder.id}:${current}`}
+        ref={listRef}
+        data-motion={view.motion}
+        style={{ minHeight }}
+        className="site-page grid content-start grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 sm:gap-y-5 md:grid-cols-6 lg:grid-cols-8"
+      >
         {pageSites.map((site) => (
           <li
             key={site.id}
@@ -163,24 +210,30 @@ export function SiteGrid({ folder, onReorder, onAdd, onVisit }: SiteGridProps) {
 
       {pages > 1 ? (
         <div className="mt-5 flex items-center justify-center gap-1.5">
+          {/*
+            aria-disabled rather than disabled: a disabled button drops focus to
+            the body, so reaching the last page by keyboard would lose your place.
+          */}
           <button
             type="button"
             aria-label="上一页"
-            disabled={current === 0}
-            onClick={() => setPage(current - 1)}
-            className="grid size-7 place-items-center rounded-full text-ink-muted transition-colors hover:bg-glass hover:text-ink disabled:pointer-events-none disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            aria-disabled={current === 0}
+            onClick={() => turn(-1)}
+            className="grid size-7 place-items-center rounded-full text-ink-muted transition-[background-color,color,opacity] duration-150 hover:bg-glass hover:text-ink aria-disabled:cursor-default aria-disabled:opacity-35 aria-disabled:hover:bg-transparent aria-disabled:hover:text-ink-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <ChevronLeft size={14} aria-hidden="true" />
           </button>
-          <span className="min-w-10 text-center text-[11.5px] tabular-nums text-ink-muted">
+          <span aria-live="polite" className="min-w-10 text-center text-[11.5px] tabular-nums text-ink-muted">
+            <span className="sr-only">第 </span>
             {current + 1} / {pages}
+            <span className="sr-only"> 页</span>
           </span>
           <button
             type="button"
             aria-label="下一页"
-            disabled={current >= pages - 1}
-            onClick={() => setPage(current + 1)}
-            className="grid size-7 place-items-center rounded-full text-ink-muted transition-colors hover:bg-glass hover:text-ink disabled:pointer-events-none disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            aria-disabled={current >= pages - 1}
+            onClick={() => turn(1)}
+            className="grid size-7 place-items-center rounded-full text-ink-muted transition-[background-color,color,opacity] duration-150 hover:bg-glass hover:text-ink aria-disabled:cursor-default aria-disabled:opacity-35 aria-disabled:hover:bg-transparent aria-disabled:hover:text-ink-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <ChevronRight size={14} aria-hidden="true" />
           </button>
