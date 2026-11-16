@@ -55,7 +55,7 @@ jobs:
         # 组织默认禁止 Actions 创建 PR，这一步可能失败。失败时下面的兜底步骤
         # 会把分支链接发到 Issue 里，不至于让人对着一个红叉猜。
         continue-on-error: true
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           # 组织默认禁止 GITHUB_TOKEN 建 PR。配了 SITE_BOT_TOKEN（细粒度 PAT，
           # 只给 Pull requests 读写）就用它，否则退回 GITHUB_TOKEN。
