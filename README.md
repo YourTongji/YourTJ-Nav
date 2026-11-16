@@ -34,7 +34,7 @@
 
 | 领域 | 状态 | 说明 |
 |---|---|---|
-| 搜索 | `Current` | 四个引擎可切，地址自动识别，`/` 与 `⌘K` 聚焦，一键清空，宽度可调 |
+| 搜索 | `Current` | 四个引擎可切，地址自动识别，`/` 与 `⌘K` 聚焦，一键清空，宽度可调；候选列表覆盖站点、本地站点和搜索记录，支持拼音首字母 |
 | 站点导航 | `Current` | 六个出厂分类共 53 个站点，支持分页、拖动排序、右键增删改 |
 | 置顶 | `Current` | 搜索栏下一行，可增删拖动，也能把网格里的站点拖上来 |
 | 最近访问 | `Current` | 记 12 条，卡片展示，可清空 |
@@ -154,7 +154,7 @@ YourTJ 的代码和文档采用 GPL-3.0-only，见[许可证](./LICENSE)。
 
 - 感谢原`tongji.icu` 为同济相关地址收集做出的持久贡献！
 - [lumno-extension](https://github.com/kubai087/lumno-extension) 是置顶栏、最近访问卡片和设置面板的交互参考，面板浮在页面上的做法也来自它。
-  自定义站点的图标来源和异形图标底色也参考了它。
+  自定义站点的图标来源、异形图标底色和搜索候选列表也参考了它。
 - 界面图标来自 [Reicon](https://github.com/Reicon/) 和 Reicon Brands。
 - 组件与无障碍底座来自 [shadcn/ui](https://ui.shadcn.com/) 和 [Radix Primitives](https://www.radix-ui.com/)。
 - 构建工具是 [Vite](https://vite.dev/)、[React](https://react.dev/) 和 [Tailwind CSS](https://tailwindcss.com/)。

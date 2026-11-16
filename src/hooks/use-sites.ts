@@ -133,6 +133,9 @@ export function useSites() {
   }, [store])
 
   /** Flat, de-duplicated list: what the pin picker searches over. */
+  /** Sites the user added on this device, as opposed to the shipped list. */
+  const localIds = useMemo(() => new Set(store.added.map((entry) => entry.id)), [store.added])
+
   const allSites = useMemo(() => {
     const seen = new Set<string>()
     const list: Site[] = []
@@ -324,6 +327,7 @@ export function useSites() {
   return {
     folders,
     allSites,
+    localIds,
     addSite,
     editSite,
     iconOf,
