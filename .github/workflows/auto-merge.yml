@@ -24,14 +24,25 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: gh pr merge "$PR" --squash --delete-branch --repo "$GITHUB_REPOSITORY"
 
+      # PR 正文里的 Closes #N 会在合入时自动关单，这里只负责留言，
+      # 并兜底处理「关单没生效」的情况（比如 PR 正文被改过）。
       - name: Comment on the source issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          ISSUE=$(printf '%s' "$PR_BODY" | grep -o '#[0-9]\+' | head -1 | tr -d '#')
-          if [ -n "$ISSUE" ]; then
-            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
-              --body "已合入：$PR_URL。站点会在下一次部署后生效。"
+          ISSUE=$(printf '%s' "$PR_BODY" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+          if [ -z "$ISSUE" ]; then
+            echo "PR 正文里没有关联 Issue，跳过"
+            exit 0
+          fi
+
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+            --body "已合入：$PR_URL。站点会在下一次部署后生效。"
+
+          STATE=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
+          if [ "$STATE" = "OPEN" ]; then
+            gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" \
+              --reason completed --comment "已合入 #${{ github.event.pull_request.number }}，自动关闭。"
           fi

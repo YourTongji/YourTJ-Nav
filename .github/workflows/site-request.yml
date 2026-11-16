@@ -69,6 +69,8 @@ jobs:
           commit-message: "feat(sites): 补充站点 #${{ github.event.issue.number }}"
           title: "feat(sites): ${{ github.event.issue.title }}"
           body: |
+            Closes #${{ github.event.issue.number }}
+
             由 #${{ github.event.issue.number }} 自动生成，只改动 `src/data/sites.ts`。
 
             - 站点：${{ github.event.issue.title }}
