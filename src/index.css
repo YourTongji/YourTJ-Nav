@@ -703,6 +703,17 @@
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
+/*
+  Light and dark trade every colour at once, wallpaper scrim included, so that
+  cross-fade gets twice the time and a symmetric curve: the eye settles into the
+  new tone instead of being cut over to it (use-theme.ts).
+*/
+html[data-transition="theme"]::view-transition-old(root),
+html[data-transition="theme"]::view-transition-new(root) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .page-frame {
   width: 100%;
   max-width: var(--page-max);
