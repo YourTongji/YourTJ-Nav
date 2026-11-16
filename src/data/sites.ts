@@ -443,20 +443,6 @@ const tools: Site[] = [
     url: "https://github.com",
     mark: brand(Github),
   },
-  {
-    id: "example",
-    title: "流程自检",
-    description: "验证自动关单，稍后关闭",
-    url: "https://example.com/selftest",
-    mark: logo("https://example.com/favicon.ico", "light"),
-  },
-  {
-    id: "example-s1sp",
-    title: "自动关单自检",
-    description: "验证合入后 Issue 自动关闭，随后清理",
-    url: "https://example.org/autoclose-check",
-    mark: logo("https://example.org/favicon.ico", "light"),
-  },
 ]
 
 const software: Site[] = [
