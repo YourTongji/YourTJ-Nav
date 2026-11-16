@@ -290,6 +290,13 @@ const course: Site[] = [
     url: "https://www.ilab-x.com/",
     mark: glyph(TestTube),
   },
+  {
+    id: "tongji",
+    title: "同济大学好课平台",
+    description: "数学基础课常用网站",
+    url: "https://tongji.aihaoke.net",
+    mark: logo("https://tongji.aihaoke.net/favicon.ico", "light"),
+  },
 ]
 
 const academic: Site[] = [
