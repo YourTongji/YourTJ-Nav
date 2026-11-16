@@ -52,6 +52,9 @@ jobs:
 
       - name: Open or update the pull request
         id: pr
+        # 组织默认禁止 Actions 创建 PR，这一步可能失败。失败时下面的兜底步骤
+        # 会把分支链接发到 Issue 里，不至于让人对着一个红叉猜。
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v6
         with:
           branch: site/issue-${{ github.event.issue.number }}
@@ -81,3 +84,19 @@ jobs:
           if [ "$HAS_LABEL" != "true" ]; then
             gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" --add-label site-request
           fi
+
+      # 分支已经推上去了，只是 PR 没建成。把一键创建链接贴回 Issue。
+      - name: Fall back to a compare link
+        if: steps.pr.outputs.pull-request-number == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+          BRANCH: site/issue-${{ github.event.issue.number }}
+        run: |
+          LINK="https://github.com/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1"
+          BODY=$(printf '%s\n\n%s\n\n%s' \
+            "改动已经准备好，分支 \`$BRANCH\` 只改了 \`src/data/sites.ts\`。" \
+            "自动建 PR 被组织策略拦下了：Settings → Actions → General → Allow GitHub Actions to create and approve pull requests。" \
+            "$LINK")
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          echo "::error::PR 未创建，分支 $BRANCH 已推送，链接已发到 Issue"
