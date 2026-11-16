@@ -242,6 +242,13 @@ const official: Site[] = [
     url: "https://nic.tongji.edu.cn/xzzq/VPNkhdxz.htm",
     mark: glyph(Shield),
   },
+  {
+    id: "agi",
+    title: "同济大学人工智能服务平台",
+    description: "同济大学自部署的AI资源",
+    url: "https://agi.tongji.edu.cn",
+    mark: logo("https://agi.tongji.edu.cn/favicon.ico", "light"),
+  },
 ]
 
 const course: Site[] = [
