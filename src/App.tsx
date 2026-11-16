@@ -65,6 +65,8 @@ export default function App() {
   const search = useSearch()
   const pins = usePins()
   const [quoteVisible, , setQuoteVisible] = useBoolPref("yourtj-nav-quote", true)
+  const [catVisible, , setCatVisible] = useBoolPref("yourtj-nav-cat", true)
+  const [catSpot, setCatSpot] = useNumberPref("yourtj-nav-cat-spot", 0, 0, 1)
   const clock = useClockPrefs()
   const [searchWidth, setSearchWidth] = useNumberPref("yourtj-nav-search-width", 608, 420, 900)
   const [material, setMaterial] = useEnumPref<MaterialId>(
@@ -215,6 +217,10 @@ export default function App() {
                   width={searchWidth}
                   source={suggestSource}
                   onVisit={visit}
+                  cat={catVisible}
+                  onHideCat={() => setCatVisible(false)}
+                  catSpot={catSpot}
+                  onCatSpot={setCatSpot}
                 />
               </div>
               <PinnedBar
@@ -344,6 +350,8 @@ export default function App() {
         themeMode={mode}
         onThemeMode={setMode}
         quoteVisible={quoteVisible}
+        catVisible={catVisible}
+        onCatVisible={setCatVisible}
         onQuoteVisible={setQuoteVisible}
         searchWidth={searchWidth}
         onSearchWidth={setSearchWidth}

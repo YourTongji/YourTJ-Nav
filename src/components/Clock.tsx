@@ -46,7 +46,9 @@ export function Clock({ prefs }: { prefs: ClockPrefs }) {
       className="flex flex-col items-center gap-1 text-center"
       style={{ opacity: prefs.opacity / 100 }}
     >
+      {/* `data-cat-avoid`: the search bar's cat never hatches under the time. */}
       <p
+        data-cat-avoid
         className={cn("leading-none tabular-nums", INK_CLASS[prefs.ink])}
         style={{
           fontFamily: prefs.serif
@@ -76,7 +78,7 @@ export function Clock({ prefs }: { prefs: ClockPrefs }) {
           </span>
         ) : null}
       </p>
-      <p className="text-[11.5px] tracking-[0.08em] text-ink-muted">
+      <p data-cat-avoid className="text-[11.5px] tracking-[0.08em] text-ink-muted">
         {monthDay.format(now)}
         <span aria-hidden="true" className="mx-1.5 opacity-45">
           ·
