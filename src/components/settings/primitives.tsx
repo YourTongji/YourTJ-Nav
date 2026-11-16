@@ -29,7 +29,7 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="grid gap-1 rounded-full border border-hairline-strong bg-glass p-1"
+      className="grid gap-1 rounded-full bg-[var(--mat-well)] p-1"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((option) => {
@@ -45,7 +45,7 @@ export function Segmented<T extends string>({
               "h-8 rounded-full text-[12px] font-medium transition-[background-color,color,box-shadow] duration-200",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
               active
-                ? "bg-popover text-ink shadow-[0_1px_3px_-1px_var(--shade)]"
+                ? "bg-[var(--mat-raised)] text-ink shadow-[var(--mat-raised-edge)]"
                 : "text-ink-muted hover:text-ink",
             )}
           >

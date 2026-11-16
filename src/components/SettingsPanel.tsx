@@ -3,7 +3,8 @@ import { Check, ChevronDown, Image, Pen, Plus, Trash, X } from "reicon-react"
 
 import { Mark } from "@/components/Mark"
 import { ClockSection } from "@/components/settings/ClockSection"
-import { FieldLabel, Segmented, SettingsGroup } from "@/components/settings/primitives"
+import { FieldLabel, SettingsGroup } from "@/components/settings/primitives"
+import { MaterialGallery } from "@/components/MaterialGallery"
 import { ThemeGallery } from "@/components/ThemeGallery"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -16,7 +17,7 @@ import type { ClockController } from "@/hooks/use-clock-prefs"
 import type { ThemeMode } from "@/hooks/use-theme"
 import type { SitesController } from "@/hooks/use-sites"
 import type { WallpaperController } from "@/hooks/use-wallpaper"
-import { materials, type MaterialId } from "@/data/materials"
+import type { MaterialId } from "@/data/materials"
 import { hostOf } from "@/lib/site-store"
 import { cn } from "@/lib/utils"
 
@@ -65,7 +66,7 @@ function WallpaperSection({
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-1 rounded-full border border-hairline-strong bg-glass p-1">
+      <div className="grid grid-cols-3 gap-1 rounded-full bg-[var(--mat-well)] p-1">
         {wallpaperSources.map((source) => {
           const active = source.id === wallpaper.source
           return (
@@ -78,7 +79,7 @@ function WallpaperSection({
                 "h-8 rounded-full text-[12.5px] font-medium transition-colors duration-150",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                 active
-                  ? "bg-popover text-ink shadow-[0_1px_3px_-1px_var(--shade)]"
+                  ? "bg-[var(--mat-raised)] text-ink shadow-[var(--mat-raised-edge)]"
                   : "text-ink-muted hover:text-ink",
               )}
             >
@@ -476,12 +477,7 @@ export function SettingsPanel({
 
               <div className="space-y-1.5">
                 <FieldLabel>材质</FieldLabel>
-                <Segmented
-                  label="材质"
-                  value={material}
-                  options={materials.map((item) => ({ id: item.id, label: item.label }))}
-                  onChange={onMaterial}
-                />
+                <MaterialGallery value={material} onChange={onMaterial} />
               </div>
 
               <div className="space-y-1 border-t border-hairline pt-3">

@@ -25,7 +25,7 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-[22rem] -translate-x-1/2 -translate-y-1/2",
-          "rounded-[20px] border border-hairline-strong mat-panel p-5 shadow-[0_40px_80px_-32px_var(--shade)]",
+          "rounded-[20px] mat-panel p-5",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           className,

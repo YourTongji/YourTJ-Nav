@@ -64,6 +64,24 @@
   --hairline: oklch(0.2 0.02 262 / 0.1);
   --hairline-strong: oklch(0.2 0.02 262 / 0.2);
   --shade: oklch(0.4 0.04 260 / 0.16);
+  /* Elevation, shared by every material: a plate sits on the photo, a float
+     hovers over the plates. Two layers each, a tight contact shadow and a
+     soft ambient one, so neither reads as a dark halo. */
+  --lift-plate:
+    0 1px 2px oklch(0.25 0.03 262 / 0.06),
+    0 8px 24px -12px oklch(0.25 0.03 262 / 0.2);
+  --lift-float:
+    0 2px 6px oklch(0.25 0.03 262 / 0.06),
+    0 28px 64px -24px oklch(0.25 0.03 262 / 0.32);
+  /* A control lifted off the glass (a segmented choice, a button in a panel),
+     and a well sunk into it (a track, a field). Lit or shaded, never tinted. */
+  --mat-raised: oklch(1 0 0 / 0.8);
+  --mat-raised-hover: oklch(1 0 0 / 0.95);
+  --mat-raised-edge:
+    inset 0 0.5px 0 oklch(1 0 0 / 0.8),
+    0 0 0 0.5px oklch(0.2 0.02 262 / 0.08),
+    0 1px 2px oklch(0.2 0.02 262 / 0.1);
+  --mat-well: oklch(0.2 0.02 262 / 0.06);
   --scrollbar-thumb: oklch(0.35 0.02 262 / 0.32);
   --brand-ink: oklch(0.99 0 0);
   --bloom: 0.34;
@@ -122,6 +140,18 @@
   --hairline: oklch(1 0 0 / 0.12);
   --hairline-strong: oklch(1 0 0 / 0.22);
   --shade: oklch(0 0 0 / 0.38);
+  --lift-plate:
+    0 1px 2px oklch(0 0 0 / 0.24),
+    0 10px 28px -14px oklch(0 0 0 / 0.5);
+  --lift-float:
+    0 2px 8px oklch(0 0 0 / 0.3),
+    0 32px 72px -24px oklch(0 0 0 / 0.66);
+  --mat-raised: oklch(1 0 0 / 0.13);
+  --mat-raised-hover: oklch(1 0 0 / 0.18);
+  --mat-raised-edge:
+    inset 0 0.5px 0 oklch(1 0 0 / 0.18),
+    0 1px 2px oklch(0 0 0 / 0.3);
+  --mat-well: oklch(1 0 0 / 0.07);
   --scrollbar-thumb: oklch(0.92 0.01 260 / 0.34);
   --brand-ink: oklch(0.16 0.012 262);
   --bloom: 0.3;
@@ -131,79 +161,154 @@
 }
 
 /*
-  Material tokens live outside @layer components on purpose: --glass and
-  --glass-hover are declared unlayered in :root/.dark, and an unlayered rule
+  Materials. Every glass surface reads the same handful of tokens, and one
+  attribute swaps them all. `data-material` works on <html> and on any element
+  below it, so the previews in the settings panel are real glass, not pictures.
+
+  Two layers, the way system materials do it:
+    plate  sits on the wallpaper: search, nav bar, chips, tabs, recent sheets,
+           corner buttons (--mat-tint, --mat-filter)
+    float  hovers above the plates: menus, tooltips, the settings panel and
+           dialogs. Denser, because it carries lists of text (--mat-float-*)
+
+  Edges are drawn, not bordered (--mat-edge): a hairline contour outside and
+  light caught inside. A solid 1px border is one colour on every photo; a
+  translucent contour plus an inner highlight adapts to whatever is behind.
+  Plates and floats share one elevation scale (--lift-*), so the search pill
+  and the community chip read as one material at two sizes.
+
+  These live outside @layer components on purpose: an unlayered declaration
   always beats a layered one, so an override inside the layer would never win.
 */
 :root,
 [data-material="frosted"] {
-  --mat-blur: 24px;
-  --mat-saturate: 165%;
-  /* contrast() flattens the backdrop before the tint goes on: that, not more
-     opacity, is what makes glass read as glass instead of a grey slab. */
-  --mat-filter: blur(24px) saturate(165%) contrast(0.76) brightness(1.06);
-  --mat-filter-chip: blur(14px) saturate(165%) contrast(0.78) brightness(1.05);
-  --mat-surface: color-mix(in oklab, var(--background) 52%, transparent);
-  --mat-chip: color-mix(in oklab, var(--background) 50%, transparent);
-  --mat-chip-hover: color-mix(in oklab, var(--background) 66%, transparent);
-  --mat-rim: inset 0 1px 0 oklch(1 0 0 / 0.26);
-  --mat-card-panel: var(--card-panel);
-  --mat-card-mat: var(--card-mat);
-  --mat-panel: color-mix(in oklab, var(--background) 82%, transparent);
-  /* A wash of light across the top edge: what separates glass from a flat tint. */
-  --mat-sheen: linear-gradient(180deg, oklch(1 0 0 / 0.18), oklch(1 0 0 / 0) 52%);
+  /* The system material. Blurred hard, saturated, then pulled toward a mid
+     tone by contrast() and brightness(): a plate looks the same over a bright
+     sky and a dark forest. contrast() is what keeps it from going grey. */
+  --mat-filter: blur(28px) saturate(170%) contrast(0.64) brightness(1.16);
+  --mat-filter-chip: blur(18px) saturate(170%) contrast(0.68) brightness(1.14);
+  --mat-float-filter: blur(32px) saturate(160%) contrast(0.7) brightness(1.12);
+  --mat-tint: oklch(0.995 0.002 250 / 0.5);
+  --mat-tint-hover: oklch(0.995 0.002 250 / 0.68);
+  --mat-float-tint: oklch(0.99 0.002 250 / 0.74);
+  --mat-sheen: linear-gradient(180deg, oklch(1 0 0 / 0.2), oklch(1 0 0 / 0) 56%);
   --mat-noise: none;
+  --mat-edge:
+    inset 0 1px 0 oklch(1 0 0 / 0.5),
+    inset 0 0 0 1px oklch(1 0 0 / 0.16),
+    0 0 0 0.5px oklch(0.2 0.02 262 / 0.14);
+  --mat-bevel: 0 0 #0000;
+  --mat-card-mat: oklch(0.93 0.004 250 / 0.6);
+  --mat-card-panel: oklch(0.995 0.002 250 / 0.58);
 }
 
-[data-material="frosted"].dark {
-  --mat-filter: blur(24px) saturate(150%) contrast(0.88) brightness(0.76);
-  --mat-filter-chip: blur(14px) saturate(150%) contrast(0.9) brightness(0.78);
+.dark:not([data-material]),
+.dark[data-material="frosted"],
+.dark [data-material="frosted"] {
+  /* A near-black tint: a mid-grey one lifts a dark backdrop into flat grey. */
+  --mat-filter: blur(28px) saturate(150%) contrast(0.82) brightness(0.72);
+  --mat-filter-chip: blur(18px) saturate(150%) contrast(0.84) brightness(0.74);
+  --mat-float-filter: blur(32px) saturate(140%) contrast(0.86) brightness(0.66);
+  --mat-tint: oklch(0.22 0.012 262 / 0.36);
+  --mat-tint-hover: oklch(0.27 0.012 262 / 0.5);
+  --mat-float-tint: oklch(0.2 0.012 262 / 0.78);
+  --mat-sheen: none;
+  --mat-edge:
+    inset 0 1px 0 oklch(1 0 0 / 0.1),
+    inset 0 0 0 1px oklch(1 0 0 / 0.06),
+    0 0 0 0.5px oklch(0 0 0 / 0.36);
+  --mat-card-mat: oklch(0.13 0.012 262 / 0.6);
+  --mat-card-panel: oklch(0.24 0.014 262 / 0.56);
 }
 
-/* Denser and less blurred: the backdrop is read through a heavier sheet. */
+/* A heavier sheet: less blur shows through, less colour survives, and a fine
+   grey grain gives it the matte of a real panel. The grain is monochrome and
+   faint; colour noise at any strength reads as dirt. */
 [data-material="acrylic"] {
-  --mat-blur: 30px;
-  --mat-saturate: 118%;
-  --mat-filter: blur(30px) saturate(118%) contrast(0.88) brightness(1.02);
-  --mat-filter-chip: blur(18px) saturate(118%) contrast(0.9) brightness(1.02);
-  --mat-surface: color-mix(in oklab, var(--background) 80%, transparent);
-  --mat-chip: color-mix(in oklab, var(--background) 78%, transparent);
-  --mat-chip-hover: color-mix(in oklab, var(--background) 90%, transparent);
-  --mat-rim:
-    inset 0 1px 0 oklch(1 0 0 / 0.34),
-    inset 0 0 0 1px oklch(0.2 0.02 262 / 0.04);
-  --mat-card-panel: color-mix(in oklab, var(--background) 88%, transparent);
-  --mat-card-mat: color-mix(in oklab, var(--background) 72%, transparent);
-  --mat-panel: color-mix(in oklab, var(--background) 90%, transparent);
-  --mat-sheen: linear-gradient(180deg, oklch(1 0 0 / 0.14), oklch(1 0 0 / 0) 42%);
-  /* Acrylic is defined by its grain, not only its blur. */
-  --mat-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.13'/%3E%3C/svg%3E");
-  --glass: color-mix(in oklab, var(--background) 80%, transparent);
-  --glass-hover: color-mix(in oklab, var(--background) 90%, transparent);
+  --mat-filter: blur(32px) saturate(125%) brightness(1.04);
+  --mat-filter-chip: blur(20px) saturate(125%) brightness(1.04);
+  --mat-float-filter: blur(40px) saturate(120%) brightness(1.04);
+  --mat-tint: oklch(0.975 0.003 250 / 0.8);
+  --mat-tint-hover: oklch(0.985 0.003 250 / 0.9);
+  --mat-float-tint: oklch(0.975 0.003 250 / 0.9);
+  --mat-sheen: linear-gradient(180deg, oklch(1 0 0 / 0.12), oklch(1 0 0 / 0) 40%);
+  --mat-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+  --mat-edge:
+    inset 0 1px 0 oklch(1 0 0 / 0.62),
+    0 0 0 0.5px oklch(0.2 0.02 262 / 0.16);
+  --mat-bevel: 0 0 #0000;
+  --mat-card-mat: oklch(0.92 0.004 250 / 0.82);
+  --mat-card-panel: oklch(0.985 0.003 250 / 0.88);
 }
 
-/* Thin, heavily bent, lit at the rim rather than washed from the top. */
+.dark[data-material="acrylic"],
+.dark [data-material="acrylic"] {
+  --mat-filter: blur(32px) saturate(120%) brightness(0.86);
+  --mat-filter-chip: blur(20px) saturate(120%) brightness(0.86);
+  --mat-float-filter: blur(40px) saturate(115%) brightness(0.8);
+  --mat-tint: oklch(0.2 0.012 262 / 0.82);
+  --mat-tint-hover: oklch(0.24 0.012 262 / 0.9);
+  --mat-float-tint: oklch(0.2 0.012 262 / 0.92);
+  --mat-sheen: none;
+  --mat-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  --mat-edge:
+    inset 0 1px 0 oklch(1 0 0 / 0.08),
+    0 0 0 0.5px oklch(0 0 0 / 0.42);
+  --mat-card-mat: oklch(0.14 0.012 262 / 0.84);
+  --mat-card-panel: oklch(0.23 0.014 262 / 0.9);
+}
+
+/*
+  Clear glass. A light blur and a vivid backdrop instead of a frosted wash, a
+  thin tint, and the light living at the rim: a specular catch where the
+  curve faces the light (top left, fainter bottom right) and a soft bevel just
+  inside the edge, so a plate reads as a thick slab. The bands stay within a
+  few pixels of the edge: a wide inset glow only mixes white into the glass,
+  which is the milky haze this material used to have.
+*/
 [data-material="liquid"] {
-  --mat-blur: 42px;
-  --mat-saturate: 200%;
-  --mat-filter: blur(42px) saturate(200%) contrast(0.7) brightness(1.1);
-  --mat-filter-chip: blur(26px) saturate(200%) contrast(0.72) brightness(1.08);
-  --mat-surface: color-mix(in oklab, var(--background) 24%, transparent);
-  --mat-chip: color-mix(in oklab, var(--background) 22%, transparent);
-  --mat-chip-hover: color-mix(in oklab, var(--background) 36%, transparent);
-  --mat-rim:
-    inset 0 1px 0 oklch(1 0 0 / 0.8),
-    inset 0 -1px 0 oklch(1 0 0 / 0.24),
-    inset 0 0 22px oklch(1 0 0 / 0.1),
-    inset 0 0 0 1px oklch(1 0 0 / 0.14);
-  --mat-card-panel: color-mix(in oklab, var(--background) 64%, transparent);
-  --mat-card-mat: color-mix(in oklab, var(--background) 40%, transparent);
-  --mat-panel: color-mix(in oklab, var(--background) 66%, transparent);
-  /* Liquid glass is lit where the curve faces the light, not washed from the top. */
-  --mat-sheen: radial-gradient(150% 95% at 14% -26%, oklch(1 0 0 / 0.34), transparent 60%);
+  --mat-filter: blur(5px) saturate(185%) brightness(1.08);
+  --mat-filter-chip: blur(4px) saturate(185%) brightness(1.08);
+  --mat-float-filter: blur(14px) saturate(170%) contrast(0.9) brightness(1.08);
+  --mat-tint: oklch(1 0 0 / 0.18);
+  --mat-tint-hover: oklch(1 0 0 / 0.3);
+  --mat-float-tint: oklch(0.99 0.002 250 / 0.5);
+  --mat-sheen: none;
   --mat-noise: none;
-  --glass: color-mix(in oklab, var(--background) 46%, transparent);
-  --glass-hover: color-mix(in oklab, var(--background) 62%, transparent);
+  --mat-edge:
+    inset 1.5px 1.5px 1px -1px oklch(1 0 0 / 0.95),
+    inset -1.5px -1.5px 1px -1px oklch(1 0 0 / 0.55),
+    inset 0 0 0 0.5px oklch(1 0 0 / 0.32),
+    0 0 0 0.5px oklch(0.2 0.02 262 / 0.1);
+  --mat-bevel:
+    inset 0 6px 8px -6px oklch(1 0 0 / 0.5),
+    inset 4px 0 8px -6px oklch(1 0 0 / 0.22),
+    inset -4px 0 8px -6px oklch(1 0 0 / 0.12),
+    inset 0 -6px 8px -6px oklch(0 0 0 / 0.06);
+  --mat-card-mat: oklch(1 0 0 / 0.16);
+  --mat-card-panel: oklch(1 0 0 / 0.32);
+}
+
+.dark[data-material="liquid"],
+.dark [data-material="liquid"] {
+  --mat-filter: blur(5px) saturate(160%) brightness(0.8);
+  --mat-filter-chip: blur(4px) saturate(160%) brightness(0.8);
+  --mat-float-filter: blur(14px) saturate(150%) brightness(0.74);
+  --mat-tint: oklch(0.2 0.012 262 / 0.22);
+  --mat-tint-hover: oklch(0.26 0.012 262 / 0.34);
+  --mat-float-tint: oklch(0.2 0.012 262 / 0.58);
+  --mat-edge:
+    inset 1px 1px 0.5px -0.5px oklch(1 0 0 / 0.46),
+    inset -1px -1px 0.5px -0.5px oklch(1 0 0 / 0.18),
+    inset 0 0 0 0.5px oklch(1 0 0 / 0.06),
+    0 0 0 0.5px oklch(0 0 0 / 0.3);
+  --mat-bevel:
+    inset 0 6px 8px -6px oklch(1 0 0 / 0.18),
+    inset 4px 0 8px -6px oklch(1 0 0 / 0.07),
+    inset -4px 0 8px -6px oklch(1 0 0 / 0.04),
+    inset 0 -6px 8px -6px oklch(0 0 0 / 0.08);
+  --mat-card-mat: oklch(0.14 0.012 262 / 0.26);
+  --mat-card-panel: oklch(0.22 0.014 262 / 0.36);
 }
 
 /*
@@ -429,18 +534,18 @@
   }
 }
 
-.search-shell {
-  transition:
-    border-color 180ms var(--ease-out-soft),
-    box-shadow 180ms var(--ease-out-soft);
-}
-
+/*
+  Focus on the search pill is the contour stepping up to a quiet ink ring and
+  a whisper of a halo, not a 2px brand ring: the field is already the loudest
+  thing on the page, and a blue frame around it read as an error state.
+*/
 .search-shell:focus-within {
-  border-color: color-mix(in oklab, var(--ink) 28%, transparent);
   box-shadow:
-    var(--mat-rim),
-    0 0 0 3px color-mix(in oklab, var(--ink) 6%, transparent),
-    0 18px 48px -20px var(--shade);
+    var(--mat-edge),
+    var(--mat-bevel),
+    0 0 0 1px color-mix(in oklab, var(--ink) 24%, transparent),
+    0 0 0 4px color-mix(in oklab, var(--ink) 6%, transparent),
+    var(--lift-plate);
 }
 
 /*
@@ -545,14 +650,56 @@
 }
 
 /*
+  The scene behind each material sample: hard-edged shapes, so how far the
+  glass blurs, bends colour and lights its rim is visible at 100px wide.
+*/
+.material-scene {
+  background-image:
+    radial-gradient(circle at 24% 36%, oklch(0.8 0.15 65) 0 17%, transparent 17.5%),
+    radial-gradient(circle at 74% 66%, oklch(0.6 0.17 255) 0 21%, transparent 21.5%),
+    linear-gradient(135deg, oklch(0.9 0.05 190), oklch(0.74 0.09 300));
+}
+
+.dark .material-scene {
+  background-image:
+    radial-gradient(circle at 24% 36%, oklch(0.7 0.14 65) 0 17%, transparent 17.5%),
+    radial-gradient(circle at 74% 66%, oklch(0.5 0.15 255) 0 21%, transparent 21.5%),
+    linear-gradient(135deg, oklch(0.36 0.05 220), oklch(0.26 0.06 300));
+}
+
+/*
   Panels, menus and the settings sheet. One class, so every floating surface
   answers to the material instead of only the search bar.
 */
 .mat-panel {
-  background-color: var(--mat-panel);
+  background-color: var(--mat-float-tint);
   background-image: var(--mat-noise), var(--mat-sheen);
-  border: 1px solid var(--hairline-strong);
-  backdrop-filter: blur(calc(var(--mat-blur) * 0.85)) saturate(var(--mat-saturate));
+  border: 0;
+  box-shadow: var(--mat-edge), var(--lift-float);
+  backdrop-filter: var(--mat-float-filter);
+}
+
+/* A tooltip is a float too, but a small one: it should not cast a panel's shadow. */
+.mat-panel[data-slot="tooltip-content"] {
+  box-shadow: var(--mat-edge), var(--lift-plate);
+}
+
+/*
+  No translucency where the system asks for none, or where the browser cannot
+  blur: the same surfaces fall back to the solid popover colour.
+*/
+@media (prefers-reduced-transparency: reduce) {
+  .mat-panel {
+    background-color: var(--popover);
+    background-image: none;
+    backdrop-filter: none;
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .mat-panel {
+    background-color: var(--popover);
+  }
 }
 
 
@@ -755,56 +902,51 @@
   }
 
   /*
-    Surface material. One attribute on <html> restyles every floating pane:
-    the search bar, the nav, the chips, the recent cards and the panels.
-    `--mat-*` is read by .glass-shell / .nav-chip / .recent-* below.
+    Plates. The search bar and the nav plate are .glass-shell; chips, the
+    selected folder tab and the corner buttons are .nav-chip, the same
+    material with a lighter blur. Both draw their edge and their elevation
+    from the same tokens, which is what keeps the search pill and the
+    community chip from looking like two different materials.
   */
-  .glass-shell {
-    background-color: var(--mat-surface);
+  .glass-shell,
+  .nav-chip {
+    background-color: var(--mat-tint);
     background-image: var(--mat-noise), var(--mat-sheen);
-    border: 1px solid var(--hairline-strong);
-    box-shadow:
-      var(--mat-rim),
-      0 18px 48px -20px var(--shade);
+    box-shadow: var(--mat-edge), var(--mat-bevel), var(--lift-plate);
     backdrop-filter: var(--mat-filter);
-    transition: background-color 220ms var(--ease-out-soft);
-  }
-
-
-  /*
-    Floating controls sit over the photo, and at the top of the page the scrim is
-    at its weakest. A white-glass chip would make a dark-theme icon wash out on a
-    bright wallpaper, so the chip takes the theme's own background colour.
-  */
-  /* The selected folder tab is glass too; without a blur it reads as tinted
-     plastic next to the search bar. */
-  [role="tab"][aria-selected="true"] {
-    backdrop-filter: var(--mat-filter-chip);
+    transition:
+      background-color 180ms var(--ease-out-soft),
+      box-shadow 180ms var(--ease-out-soft);
   }
 
   .nav-chip {
-    background-color: var(--mat-chip);
-    background-image: var(--mat-noise), var(--mat-sheen);
-    border: 1px solid var(--hairline-strong);
     backdrop-filter: var(--mat-filter-chip);
-    transition: background-color 160ms var(--ease-out-soft);
   }
 
-  .nav-chip:hover {
-    background-color: var(--mat-chip-hover);
+  .nav-chip:hover,
+  a.nav-chip:focus-visible,
+  button.nav-chip:focus-visible {
+    background-color: var(--mat-tint-hover);
   }
 
   /*
-    系统要求减少透明时，玻璃退回不透明面板。这个块必须放在 .nav-chip 之后：
-    之前它被误插到 .glass-shell 的规则中间，把 .glass-shell 和 .mat-panel 的
+    系统要求减少透明或浏览器不支持模糊时，玻璃退回不透明面板。这个块必须放在
+    .nav-chip 之后：之前它被误插到 .glass-shell 的规则中间，把 .glass-shell 的
     backdrop-filter 一起吞掉了，线上整片玻璃失效。
   */
   @media (prefers-reduced-transparency: reduce) {
     .glass-shell,
-    .mat-panel,
     .nav-chip {
       background-color: var(--popover);
+      background-image: none;
       backdrop-filter: none;
+    }
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-shell,
+    .nav-chip {
+      background-color: var(--popover);
     }
   }
 
@@ -834,8 +976,7 @@
     border-radius: 25px;
     padding: 7px 7px 11px;
     background-color: var(--mat-card-mat);
-    border: 1px solid var(--hairline);
-    box-shadow: 0 10px 26px -20px var(--shade);
+    box-shadow: var(--mat-edge), 0 10px 26px -20px var(--shade);
     transition:
       transform 240ms var(--ease-spring),
       box-shadow 240ms var(--ease-spring);
@@ -844,7 +985,7 @@
   .recent-card:hover .recent-mat,
   .recent-card:focus-visible .recent-mat {
     transform: rotate(-2deg) scale(1.014);
-    box-shadow: 0 22px 46px -26px var(--shade);
+    box-shadow: var(--mat-edge), 0 22px 46px -26px var(--shade);
   }
 
   .recent-panel {
@@ -855,8 +996,8 @@
     border-radius: 18px;
     background-color: var(--mat-card-panel);
     background-image: var(--mat-noise), var(--mat-sheen);
-    border: 1px solid var(--hairline);
-    /* Frosted, not opaque: the wallpaper reads through the sheet. */
+    box-shadow: var(--mat-edge), var(--mat-bevel);
+    /* Glass, not opaque: the wallpaper reads through the sheet. */
     backdrop-filter: var(--mat-filter);
     overflow: hidden;
     transition:
@@ -899,25 +1040,6 @@
       background-color: var(--popover);
       backdrop-filter: none;
     }
-  }
-
-  /* Lit top edge of the sheet, dark theme only. */
-  .dark .recent-panel::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    pointer-events: none;
-    background-image: linear-gradient(180deg, oklch(1 0 0 / 0.16), transparent 60%);
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask-composite: exclude;
   }
 
   @media (prefers-reduced-motion: reduce) {

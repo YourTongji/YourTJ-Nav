@@ -11,8 +11,9 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-primary text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.14)] hover:bg-primary/92",
+        /* A control lifted off whatever glass it sits on: lit, not tinted. */
         glass:
-          "border border-hairline-strong bg-glass text-ink backdrop-blur-md hover:bg-glass-hover",
+          "bg-[var(--mat-raised)] text-ink shadow-[var(--mat-raised-edge)] hover:bg-[var(--mat-raised-hover)]",
         chip: "nav-chip text-ink",
         ghost: "text-ink-muted hover:bg-accent hover:text-ink",
         outline: "border border-hairline-strong text-ink hover:bg-accent",

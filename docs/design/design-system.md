@@ -20,26 +20,58 @@
 
 ## 材质
 
-`<html data-material="...">` 一个属性，换掉所有玻璃面：搜索框、导航、chips、最近访问卡片、面板和菜单。
+`data-material` 一个属性换掉所有玻璃面。它写在 `<html>` 上管整页，也可以写在任意元素上只管那一块：
+设置面板里的三张材质预览就是这样做的，卡片里是真的玻璃，不是截图。
 
-| 材质 | `backdrop-filter` | 面板不透明度 | 特征 |
+### 两层
+
+| 层 | 令牌 | 用在 |
+|---|---|---|
+| 底板 plate | `--mat-tint`、`--mat-filter`（chip 用 `--mat-filter-chip`） | 搜索框、导航栏、chips、选中的分类、最近访问的玻璃面、右下角按钮 |
+| 浮层 float | `--mat-float-tint`、`--mat-float-filter` | 菜单、提示、设置面板、对话框 |
+
+浮层比底板更实，因为它上面是成列的文字。
+
+### 三种材质
+
+| 材质 | 底板滤镜（浅色） | 底板着色 | 特征 |
 |---|---|---|---|
-| 磨砂 | `blur(24) saturate(165%) contrast(.76) brightness(1.06)` | 52% | 顶部落一道光 |
-| 亚克力 | `blur(30) saturate(118%) contrast(.88) brightness(1.02)` | 80% | 加噪点，更实 |
-| 液态玻璃 | `blur(42) saturate(200%) contrast(.70) brightness(1.10)` | 24% | 左上角高光，四边内反光 |
+| 磨砂 | `blur(28) saturate(170%) contrast(.64) brightness(1.16)` | 白 50% | 顶部一道光，任何壁纸上都稳 |
+| 亚克力 | `blur(32) saturate(125%) brightness(1.04)` | 白 80% | 灰度细颗粒，4.5% |
+| 液态玻璃 | `blur(5) saturate(185%) brightness(1.08)` | 白 18% | 通透，左上与右下的高光、贴边的斜面光 |
 
-关键在 `contrast()`。它先把背景压平再上色，玻璃才有柔的质感。只堆模糊和不透明度，
-出来的是灰塑料板。深色主题另有一套，写在 `[data-material].dark`，亮度收到 0.76 到 0.84。
+深色主题各有一套，写在 `.dark[data-material=…]` 和 `.dark [data-material=…]`：着色换成近黑
+`oklch(0.2 0.012 262)`，亮度收到 0.72 到 0.86。中灰的着色会把深色背景托成一片平灰。
 
-令牌有 `--mat-filter`、`--mat-surface`、`--mat-chip`、`--mat-rim`、`--mat-panel`、
-`--mat-card-*`、`--mat-sheen`、`--mat-noise`。使用方是 `.glass-shell`、`.mat-panel`、
-`.nav-chip`、选中的文件夹标签、`.recent-mat`、`.recent-panel`。
+几条取舍：
 
-`backdrop-filter` 只写标准属性，不要手写 `-webkit-` 前缀。构建用的 LightningCSS 会自己补前缀；
-手写两份时它会把标准属性去掉，只留前缀版，结果在线上整片玻璃变成 `none`。
+- 磨砂靠 `contrast()` 把背景先压平再提亮，照片亮或暗，底板看起来都一样。只堆模糊和不透明度，出来的是灰塑料板。
+- 亚克力的颗粒必须是灰度的，而且要淡。彩色噪点无论多淡都像脏东西。
+- 液态玻璃的光只在边缘几像素内。大范围的内发光只是往玻璃里混白，就是以前那层奶雾。
 
-这些令牌必须写在 `@layer components` 外面。`--glass` 和 `--glass-hover` 在 `:root` 和 `.dark`
-里是无层级声明的，无层级规则永远赢过有层级的，写在 layer 里的覆盖不会生效。
+实测（高频彩色测试图，遮罩 0，按[验证与验收](../development/testing.md)的办法采最差像素）：
+底板里背景的残留标准差，液态玻璃 6 到 9，磨砂 2 到 3，亚克力 1 到 2.5，三者分得开。
+搜索框占位文字最差对比度：浅色 6.2 到 7.4，深色 9.5 到 10.0。
+
+### 边缘与高度
+
+边缘是画出来的，不是 border：`--mat-edge` 是一圈 0.5 像素的外轮廓加上内侧的受光，
+`--mat-bevel` 是液态玻璃的斜面光。实心 1 像素描边在每张照片上都是同一个颜色，半透明轮廓加内高光会跟着背景走。
+
+高度只有两档，所有材质共用：`--lift-plate` 给底板，`--lift-float` 给浮层，各是一道紧贴的接触阴影加一道柔的环境阴影。
+搜索框和社区按钮用的是同一套边缘和高度，所以深色下两者是同一种材料的两个尺寸，不会一个发亮一个发平。
+
+面板里的控件不再着色：抬起的用 `--mat-raised` 和 `--mat-raised-edge`（分段选择的当前项、面板里的按钮），
+凹下去的用 `--mat-well`（分段控件的轨道）。
+
+### 约定
+
+- 使用方：`.glass-shell`、`.nav-chip`、`.mat-panel`、`.recent-mat`、`.recent-panel`。组件里不要再写 `border`、
+  `shadow-[…]` 或 `backdrop-blur-*` 去叠加，`.mat-panel` 是无层级规则，会盖掉它们，留着只会误导人。
+- `backdrop-filter` 只写标准属性，不要手写 `-webkit-` 前缀。构建用的 LightningCSS 会自己补前缀；
+  手写两份时它会把标准属性去掉，只留前缀版，结果在线上整片玻璃变成 `none`。
+- 这些令牌必须写在 `@layer components` 外面。无层级规则永远赢过有层级的，写在 layer 里的覆盖不会生效。
+- 系统要求减少透明，或浏览器不支持 `backdrop-filter` 时，所有玻璃面退回 `--popover` 实色。
 
 ## 圆角与间距
 
