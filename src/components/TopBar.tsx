@@ -3,6 +3,7 @@ import { ArrowUpRight, Bubble } from "reicon-react"
 
 import { SearchBar } from "@/components/SearchBar"
 import type { SearchController } from "@/hooks/use-search"
+import type { SuggestSource } from "@/lib/suggest"
 
 /**
  * The nav bar. Its glass plate and the compact search are not switched on and
@@ -13,11 +14,15 @@ export function TopBar({
   headerRef,
   handedOff,
   search,
+  source,
+  onVisit,
 }: {
   headerRef: RefObject<HTMLElement | null>
   /** True once the compact field owns the search: it takes clicks and shortcuts. */
   handedOff: boolean
   search: SearchController
+  source: Omit<SuggestSource, "history">
+  onVisit: (id: string) => void
 }) {
   return (
     <header
@@ -52,7 +57,13 @@ export function TopBar({
         inert={!handedOff}
         aria-hidden={!handedOff}
       >
-        <SearchBar variant="compact" search={search} shortcuts={handedOff} />
+        <SearchBar
+          variant="compact"
+          search={search}
+          shortcuts={handedOff}
+          source={source}
+          onVisit={onVisit}
+        />
       </div>
 
       <nav aria-label="页面操作" className="relative flex shrink-0 items-center gap-1.5">

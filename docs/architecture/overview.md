@@ -45,6 +45,7 @@ components/  界面。只有这里碰 DOM，data 和 lib 不认识 React
 | `yourtj-nav-view` | localStorage | `full` / `minimal`（简洁模式） |
 | `yourtj-nav-icon-miss` | localStorage | 加载失败的图标地址和时间，三天后重试 |
 | `yourtj-nav-engine` | localStorage | 搜索引擎 |
+| `yourtj-nav-search-history` | localStorage | 搜索记录，最多 20 条 |
 | `yourtj-nav-search-width` | localStorage | 搜索框宽度 |
 | `yourtj-nav-quote` | localStorage | 一言开关 |
 | `yourtj-nav-clock` | localStorage | 时钟整组设置，一个 JSON |

@@ -591,6 +591,85 @@
   The bar is outdented by its own inset, so the logo and the last chip sit on
   the content's edges rather than 10px inside them.
 */
+/*
+  The search suggestion list: in from 4px above, out by fading only, softer
+  than it came. Under reduced motion it only fades.
+*/
+.suggest-panel {
+  transform-origin: top center;
+  animation: suggest-in 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.suggest-panel[data-state="closing"] {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  pointer-events: none;
+}
+
+@keyframes suggest-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+    scale: 0.985;
+  }
+}
+
+/* The bar's panel is centred with `translate`; the entrance has to keep that. */
+.suggest-panel[data-placement="bar"] {
+  animation-name: suggest-in-centred;
+}
+
+@keyframes suggest-in-centred {
+  from {
+    opacity: 0;
+    translate: -50% -4px;
+    scale: 0.985;
+  }
+}
+
+/* Remove sits quiet until its row is the one in play; touch has no hover, so it stays. */
+.suggest-forget {
+  opacity: 0;
+}
+
+.suggest-row:hover .suggest-forget,
+.suggest-row[data-active="true"] .suggest-forget,
+.suggest-forget:focus-visible {
+  opacity: 1;
+}
+
+.suggest-go {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.suggest-row[data-active="true"] .suggest-go {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .suggest-forget {
+    opacity: 1;
+  }
+
+  .suggest-keys {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .suggest-panel,
+  .suggest-panel[data-placement="bar"] {
+    animation-name: suggest-fade;
+  }
+}
+
+@keyframes suggest-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Rows that step aside for a dragged one; the dragged row itself follows the pointer untransitioned. */
 .sortable-row {
   transition:

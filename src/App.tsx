@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { ExternalDrive, Widget, Pen, Plus, Settings, Trash } from "reicon-react"
 
@@ -175,6 +175,12 @@ export default function App() {
 
   const visit = (id: string) => setRecent(pushRecent(id))
 
+  // Everything the search list can offer besides past searches, shared by both fields.
+  const suggestSource = useMemo(
+    () => ({ sites: sites.allSites, localIds: sites.localIds, recent }),
+    [sites.allSites, sites.localIds, recent],
+  )
+
   return (
     <TooltipProvider>
       <Wallpaper layers={wallpaper.layers} onReady={wallpaper.markReady} onFail={wallpaper.fail} />
@@ -183,7 +189,13 @@ export default function App() {
       <div className="grain" aria-hidden="true" />
 
       <div className="relative z-10 flex min-h-dvh flex-col" data-view={view}>
-        <TopBar headerRef={headerRef} handedOff={handedOff} search={search} />
+        <TopBar
+          headerRef={headerRef}
+          handedOff={handedOff}
+          search={search}
+          source={suggestSource}
+          onVisit={visit}
+        />
 
         <main className="page-frame flex-1 pb-4">
           <h1 className="sr-only">YourTJ 校园导航</h1>
@@ -195,8 +207,15 @@ export default function App() {
                   <Clock prefs={clock.prefs} />
                 </div>
               </Collapse>
-              <div ref={heroSearchRef} className="hero-search">
-                <SearchBar search={search} shortcuts={!handedOff} width={searchWidth} />
+              {/* Above the pins and the grid: the suggestion list drops over them. */}
+              <div ref={heroSearchRef} className="hero-search relative z-30">
+                <SearchBar
+                  search={search}
+                  shortcuts={!handedOff}
+                  width={searchWidth}
+                  source={suggestSource}
+                  onVisit={visit}
+                />
               </div>
               <PinnedBar
                 pins={pinnedSites}
