@@ -1181,6 +1181,26 @@
     border-color: oklch(1 0 0 / 0.16);
   }
 
+  /* A see-through logo on a tint of its own colour, picked in lib/icon-look. */
+  .nav-tile-plate[data-chip="tint"] {
+    background-color: var(--plate);
+    border-color: oklch(1 0 0 / 0.5);
+  }
+
+  .nav-tile:hover .nav-tile-plate[data-chip="tint"],
+  .nav-tile:focus-visible .nav-tile-plate[data-chip="tint"] {
+    background-color: color-mix(in oklab, var(--plate) 86%, white);
+  }
+
+  /* First load only: an icon already in memory renders ready and never fades. */
+  .tile-logo {
+    transition: opacity 160ms var(--ease-out-soft);
+  }
+
+  .tile-logo[data-ready="false"] {
+    opacity: 0;
+  }
+
   .nav-tile-plate[data-fit="fill"] {
     overflow: hidden;
   }

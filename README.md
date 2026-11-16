@@ -42,7 +42,7 @@
 | 简洁模式 | `Current` | 只留导航，所有文件夹一屏铺开；1440 宽的桌面一屏放下全部站点 |
 | 时钟 | `Current` | 字形、字重、字号、不透明度、墨色、秒、12 小时制 |
 | 壁纸 | `Current` | 风景（默认）、动漫、自定义三个来源，自定义支持历史画廊 |
-| 站点自定义 | `Current` | 自建文件夹与站点，添加时自动取 favicon |
+| 站点自定义 | `Current` | 自建文件夹与站点；图标可从浏览器缓存、Google、favicon.is 里选或上传，透明图标自动加底色 |
 | 多端适配 | `Current` | 320 到 1920 像素无横向溢出；网格列数按宽度算，手机 4 到 5 列、平板 7 到 8 列，触屏划动翻页 |
 | 离线降级 | `Current` | 壁纸缓存 6 小时，接口超时回落，本地渐变兜底 |
 | 服务端能力 | `Planned` | 目前是纯静态页，站点数据随仓库发布 |
@@ -154,6 +154,7 @@ YourTJ 的代码和文档采用 GPL-3.0-only，见[许可证](./LICENSE)。
 
 - 感谢原`tongji.icu` 为同济相关地址收集做出的持久贡献！
 - [lumno-extension](https://github.com/kubai087/lumno-extension) 是置顶栏、最近访问卡片和设置面板的交互参考，面板浮在页面上的做法也来自它。
+  自定义站点的图标来源和异形图标底色也参考了它。
 - 界面图标来自 [Reicon](https://github.com/Reicon/) 和 Reicon Brands。
 - 组件与无障碍底座来自 [shadcn/ui](https://ui.shadcn.com/) 和 [Radix Primitives](https://www.radix-ui.com/)。
 - 构建工具是 [Vite](https://vite.dev/)、[React](https://react.dev/) 和 [Tailwind CSS](https://tailwindcss.com/)。

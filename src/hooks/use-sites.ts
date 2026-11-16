@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react"
 
-import { sections as shippedSections, type Site } from "@/data/sites"
+import { sections as shippedSections, type Site, type SiteMark } from "@/data/sites"
+import { resolveLook } from "@/lib/icon-look"
 import {
   EMPTY_SITE_STORE,
   newId,
@@ -19,10 +20,20 @@ export type Folder = {
   sites: Site[]
 }
 
+/** Each shipped site's own mark, for the dialog's "内置" choice. */
+const shippedMarks = new Map(
+  shippedSections.flatMap((section) => section.sites.map((site) => [site.id, site.mark])),
+)
+
 /** Where each shipped site lives before the user moves it. */
 const shippedHome = new Map(
   shippedSections.flatMap((section) => section.sites.map((site) => [site.id, section.id as string])),
 )
+
+/** A chosen icon, with the plate its shape and the user's choices call for. */
+function logoMark(entry: { icon: string } & Pick<AddedSite, "plate" | "plateColor" | "shape">): SiteMark {
+  return { kind: "logo", src: entry.icon, ...resolveLook(entry) }
+}
 
 function toSite(entry: AddedSite): Site {
   return {
@@ -31,7 +42,7 @@ function toSite(entry: AddedSite): Site {
     description: entry.description,
     url: entry.url,
     mark: entry.icon
-      ? { kind: "logo", src: entry.icon, chip: "light" }
+      ? logoMark({ ...entry, icon: entry.icon })
       : { kind: "letter", text: entry.title.trim().slice(0, 1).toUpperCase() || "?" },
   }
 }
@@ -72,9 +83,16 @@ export function useSites() {
       const target = store.moved[site.id]
       return target && exists.has(target) ? target : home
     }
-    const patched = (site: Site) => {
+    const patched = (site: Site): Site => {
       const patch = store.overrides[site.id]
-      return patch ? { ...site, ...patch } : site
+      if (!patch) return site
+      const { icon, plate, plateColor, shape, ...text } = patch
+      return {
+        ...site,
+        ...text,
+        // Until an icon is picked, the shipped one (with its hand-set plate) stays.
+        mark: icon ? logoMark({ icon, plate, plateColor, shape }) : site.mark,
+      }
     }
     const visibleShipped = shipped.flatMap((folder) =>
       folder.base
@@ -129,7 +147,7 @@ export function useSites() {
   }, [folders])
 
   const addSite = useCallback(
-    (input: { title: string; description: string; url: string; icon?: string; folder: string }) => {
+    (input: Omit<AddedSite, "id">) => {
       const id = newId("s")
       update((current) => {
         // A folder with a manual order needs the new id placed explicitly,
@@ -145,6 +163,22 @@ export function useSites() {
       })
     },
     [update],
+  )
+
+  /** The icon fields behind a site, as the edit dialog starts from them. */
+  const iconOf = useCallback(
+    (id: string) => {
+      const added = store.added.find((entry) => entry.id === id)
+      const fields = added ?? store.overrides[id] ?? {}
+      return {
+        icon: fields.icon ?? "",
+        plate: fields.plate,
+        plateColor: fields.plateColor,
+        shape: fields.shape,
+        base: added ? null : (shippedMarks.get(id) ?? null),
+      }
+    },
+    [store],
   )
 
   const editSite = useCallback(
@@ -279,6 +313,7 @@ export function useSites() {
     allSites,
     addSite,
     editSite,
+    iconOf,
     moveSite,
     removeSite,
     reorderFolder,

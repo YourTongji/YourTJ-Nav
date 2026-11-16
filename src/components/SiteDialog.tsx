@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { ArrowsRotate, Check, ChevronDown } from "reicon-react"
+import { Check, ChevronDown } from "reicon-react"
 
+import { IconPicker, type IconValue } from "@/components/IconPicker"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -12,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import type { SiteMark } from "@/data/sites"
 import type { Folder } from "@/hooks/use-sites"
 import { hostOf, normalizeUrl } from "@/lib/site-store"
 
@@ -19,18 +21,10 @@ export type SiteDraft = {
   id: string | null
   title: string
   url: string
-  icon: string
   folder: string
-}
-
-/** Where a site's own icon usually lives. No third party involved. */
-export function faviconOf(url: string): string {
-  try {
-    return `${new URL(url).origin}/favicon.ico`
-  } catch {
-    return ""
-  }
-}
+  /** The shipped mark of a shipped site; null for one the user added. */
+  base: SiteMark | null
+} & IconValue
 
 type SiteDialogProps = {
   draft: SiteDraft | null
@@ -53,42 +47,14 @@ function SiteForm({
   const [title, setTitle] = useState(draft.title)
   const [url, setUrl] = useState(draft.url)
   const [folder, setFolder] = useState(draft.folder)
-  const [icon, setIcon] = useState(draft.icon)
-  // Once the address is typed by hand, the icon stops following the URL.
-  const [iconTouched, setIconTouched] = useState(Boolean(draft.icon))
-  const [retried, setRetried] = useState(false)
+  const [icon, setIcon] = useState<IconValue>({
+    icon: draft.icon,
+    plate: draft.plate,
+    plateColor: draft.plateColor,
+    shape: draft.shape,
+  })
   const [error, setError] = useState<string | null>(null)
-
-  const host = (() => {
-    try {
-      return new URL(normalizeUrl(url) ?? url).host
-    } catch {
-      return ""
-    }
-  })()
-
-  function changeUrl(next: string) {
-    setUrl(next)
-    if (iconTouched) return
-    const normalized = normalizeUrl(next)
-    setIcon(normalized ? faviconOf(normalized) : "")
-    setRetried(false)
-  }
-
-  function deriveIcon() {
-    const normalized = normalizeUrl(url)
-    setIcon(normalized ? faviconOf(normalized) : "")
-    setIconTouched(false)
-    setRetried(false)
-  }
-
-  /** A site that does not serve /favicon.ico gets one try at a mirror. */
-  function handleIconError() {
-    if (retried || !host) return
-    setRetried(true)
-    setIcon(`https://favicon.im/${host}?larger=true`)
-    setIconTouched(true)
-  }
+  const normalizedUrl = normalizeUrl(url)
 
   const folderLabel = folders.find((item) => item.id === folder)?.label ?? "选择分类"
 
@@ -103,7 +69,7 @@ function SiteForm({
       return
     }
     setError(null)
-    onSubmit({ ...draft, title: title.trim(), url: normalized, icon: icon.trim(), folder })
+    onSubmit({ ...draft, title: title.trim(), url: normalized, folder, ...icon })
   }
 
   return (
@@ -129,7 +95,7 @@ function SiteForm({
         <span className="text-[12px] font-medium text-ink">地址</span>
         <Input
           value={url}
-          onChange={(event) => changeUrl(event.target.value)}
+          onChange={(event) => setUrl(event.target.value)}
           placeholder="example.tongji.edu.cn"
           inputMode="url"
           autoComplete="off"
@@ -140,46 +106,14 @@ function SiteForm({
 
       <div className="space-y-1.5">
         <span className="block text-[12px] font-medium text-ink">图标</span>
-        <div className="flex items-center gap-2">
-          <span
-            className="nav-tile-plate grid size-9 shrink-0 place-items-center overflow-hidden rounded-[10px]"
-            data-chip="light"
-          >
-            {icon ? (
-              <img
-                src={icon}
-                alt=""
-                className="size-full object-contain p-1.5"
-                onError={handleIconError}
-              />
-            ) : (
-              <span className="plate-ink text-[13px] font-semibold">
-                {title.trim().slice(0, 1).toUpperCase() || "?"}
-              </span>
-            )}
-          </span>
-          <Input
-            value={icon}
-            onChange={(event) => {
-              setIcon(event.target.value)
-              setIconTouched(true)
-            }}
-            placeholder="自动获取，也可以粘贴图标地址"
-            inputMode="url"
-            autoComplete="off"
-            spellCheck={false}
-            className="h-9 flex-1 rounded-[10px] border border-hairline-strong bg-glass px-2.5 text-[12.5px]"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="自动获取图标"
-            onClick={deriveIcon}
-          >
-            <ArrowsRotate size={13} aria-hidden="true" />
-          </Button>
-        </div>
+        <IconPicker
+          url={normalizedUrl}
+          title={title}
+          base={draft.base}
+          initial={icon}
+          fresh={draft.id === null}
+          onChange={setIcon}
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -230,7 +164,7 @@ export function SiteDialog({ draft, folders, onClose, onSubmit }: SiteDialogProp
   return (
     <Dialog open={draft !== null} onOpenChange={(open) => (open ? null : onClose())}>
       {draft ? (
-        <DialogContent>
+        <DialogContent className="max-w-[25rem]">
           <DialogTitle>{draft.id ? "编辑站点" : "添加站点"}</DialogTitle>
           <DialogDescription>
             {draft.id ? "改完保存，立刻生效" : `将加入「${folders.find((f) => f.id === draft.folder)?.label ?? ""}」`}
@@ -249,20 +183,15 @@ export function SiteDialog({ draft, folders, onClose, onSubmit }: SiteDialogProp
 }
 
 export function draftFromSite(
-  site: { id: string; title: string; url: string; mark: { kind: string; src?: string } },
+  site: { id: string; title: string; url: string },
   folder: string,
+  look: IconValue & { base: SiteMark | null },
 ): SiteDraft {
-  return {
-    id: site.id,
-    title: site.title,
-    url: site.url,
-    icon: site.mark.kind === "logo" ? (site.mark.src ?? "") : "",
-    folder,
-  }
+  return { id: site.id, title: site.title, url: site.url, folder, ...look }
 }
 
 export function draftForNew(folder: string): SiteDraft {
-  return { id: null, title: "", url: "", icon: "", folder }
+  return { id: null, title: "", url: "", icon: "", folder, base: null }
 }
 
 export { hostOf }
