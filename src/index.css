@@ -199,6 +199,10 @@
   blue frame around it read as an error state.
 */
 /* The cat on the search bar's top-left rim. */
+/*
+  锚在药丸上。药丸虽然有 backdrop-filter（它也会形成包含块），但那个值可能被
+  降级规则改成 none，猫就会跑到页面外，所以这里显式给相对定位。
+*/
 .search-cat {
   position: absolute;
   /* Past the rounded corner (radius 28) so the body rests on the flat rim. */
@@ -385,7 +389,6 @@
   background-image: var(--mat-noise), var(--mat-sheen);
   border: 1px solid var(--hairline-strong);
   backdrop-filter: blur(calc(var(--mat-blur) * 0.85)) saturate(var(--mat-saturate));
-  -webkit-backdrop-filter: blur(calc(var(--mat-blur) * 0.85)) saturate(var(--mat-saturate));
 }
 
 
@@ -600,26 +603,9 @@
       var(--mat-rim),
       0 18px 48px -20px var(--shade);
     backdrop-filter: var(--mat-filter);
-    -webkit-backdrop-filter: var(--mat-filter);
     transition: background-color 220ms var(--ease-out-soft);
   }
 
-  @media (prefers-reduced-transparency: reduce) {
-    .glass-shell,
-    .mat-panel,
-    /* The selected folder tab is glass too; without a blur it reads as tinted
-     plastic next to the search bar. */
-  [role="tab"][aria-selected="true"] {
-    backdrop-filter: var(--mat-filter-chip);
-    -webkit-backdrop-filter: var(--mat-filter-chip);
-  }
-
-  .nav-chip {
-      background-color: var(--popover);
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-    }
-  }
 
   /*
     Floating controls sit over the photo, and at the top of the page the scrim is
@@ -630,7 +616,6 @@
      plastic next to the search bar. */
   [role="tab"][aria-selected="true"] {
     backdrop-filter: var(--mat-filter-chip);
-    -webkit-backdrop-filter: var(--mat-filter-chip);
   }
 
   .nav-chip {
@@ -638,12 +623,25 @@
     background-image: var(--mat-noise), var(--mat-sheen);
     border: 1px solid var(--hairline-strong);
     backdrop-filter: var(--mat-filter-chip);
-    -webkit-backdrop-filter: var(--mat-filter-chip);
     transition: background-color 160ms var(--ease-out-soft);
   }
 
   .nav-chip:hover {
     background-color: var(--mat-chip-hover);
+  }
+
+  /*
+    系统要求减少透明时，玻璃退回不透明面板。这个块必须放在 .nav-chip 之后：
+    之前它被误插到 .glass-shell 的规则中间，把 .glass-shell 和 .mat-panel 的
+    backdrop-filter 一起吞掉了，线上整片玻璃失效。
+  */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-shell,
+    .mat-panel,
+    .nav-chip {
+      background-color: var(--popover);
+      backdrop-filter: none;
+    }
   }
 
   /*
@@ -696,7 +694,6 @@
     border: 1px solid var(--hairline);
     /* Frosted, not opaque: the wallpaper reads through the sheet. */
     backdrop-filter: var(--mat-filter);
-    -webkit-backdrop-filter: var(--mat-filter);
     overflow: hidden;
     transition:
       height 240ms var(--ease-spring),
@@ -737,7 +734,6 @@
     .recent-panel {
       background-color: var(--popover);
       backdrop-filter: none;
-      -webkit-backdrop-filter: none;
     }
   }
 

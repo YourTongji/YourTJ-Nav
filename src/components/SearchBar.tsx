@@ -127,8 +127,8 @@ export function SearchBar({ variant = "hero", shortcuts = true, width }: SearchB
       }}
       className={
         compact
-          ? "glass-shell search-shell flex h-9 w-full cursor-text items-center gap-0.5 rounded-full p-1"
-          : "glass-shell search-shell mx-auto flex h-14 w-full cursor-text items-center gap-0.5 rounded-full p-1.5"
+          ? "glass-shell search-shell relative flex h-9 w-full cursor-text items-center gap-0.5 rounded-full p-1"
+          : "glass-shell search-shell relative mx-auto flex h-14 w-full cursor-text items-center gap-0.5 rounded-full p-1.5"
       }
       style={compact ? undefined : { maxWidth: width ?? 608 }}
     >

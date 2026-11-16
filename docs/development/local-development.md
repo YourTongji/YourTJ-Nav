@@ -58,6 +58,9 @@ VITE_BASE=/YourTJ-Nav/ npm run build
 modal 会锁 body 滚动，滚动条消失后页面变宽，固定定位的壁纸跟着重新 `cover`。
 所有菜单都要写 `modal={false}`，`html` 上的 `scrollbar-gutter: stable` 是兜底。
 
+**本地正常，线上玻璃全没了。** 检查构建产物里的 `backdrop-filter`。手写 `-webkit-backdrop-filter`
+会让 LightningCSS 去掉标准属性，浏览器只看到前缀版时可能算成 `none`。只写标准属性，前缀交给构建工具。
+
 **从菜单里打开的面板闪一下就关。** 菜单关闭时会把焦点还给页面，面板在下一帧读到
 “焦点跑到外面”就自己关了。守卫要写在知道 `open` 的组件里，按 `open` 变化重置。
 写在 `SheetContent` 里没用，那个组件的函数体在 App 首次渲染时就跑过一次。

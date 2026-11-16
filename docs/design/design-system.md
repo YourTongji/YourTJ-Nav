@@ -35,6 +35,9 @@
 `--mat-card-*`、`--mat-sheen`、`--mat-noise`。使用方是 `.glass-shell`、`.mat-panel`、
 `.nav-chip`、选中的文件夹标签、`.recent-mat`、`.recent-panel`。
 
+`backdrop-filter` 只写标准属性，不要手写 `-webkit-` 前缀。构建用的 LightningCSS 会自己补前缀；
+手写两份时它会把标准属性去掉，只留前缀版，结果在线上整片玻璃变成 `none`。
+
 这些令牌必须写在 `@layer components` 外面。`--glass` 和 `--glass-hover` 在 `:root` 和 `.dark`
 里是无层级声明的，无层级规则永远赢过有层级的，写在 layer 里的覆盖不会生效。
 
