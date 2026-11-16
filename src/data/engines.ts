@@ -16,18 +16,19 @@ export type Engine = {
 
 const brand = (Icon: BrandIconFn): SiteMark => ({ kind: "brand", Icon, chip: "light" })
 
+/** The default first: the menu lists it at the top. */
 export const engines: Engine[] = [
-  {
-    id: "google",
-    name: "Google",
-    urlTemplate: "https://www.google.com/search?q=%s",
-    mark: { kind: "logo", src: asset("/brand/google.svg"), chip: "light" },
-  },
   {
     id: "bing",
     name: "Bing",
     urlTemplate: "https://www.bing.com/search?q=%s",
     mark: { kind: "logo", src: asset("/brand/bing.svg"), chip: "light" },
+  },
+  {
+    id: "google",
+    name: "Google",
+    urlTemplate: "https://www.google.com/search?q=%s",
+    mark: { kind: "logo", src: asset("/brand/google.svg"), chip: "light" },
   },
   {
     id: "baidu",
@@ -45,7 +46,8 @@ export const engines: Engine[] = [
 
 export const engineIds = engines.map((engine) => engine.id)
 
-export const defaultEngineId = "google"
+/** First visit lands on Bing: it answers from mainland networks without a proxy. */
+export const defaultEngineId = "bing"
 
 export function findEngine(id: string): Engine {
   return engines.find((engine) => engine.id === id) ?? engines[0]
