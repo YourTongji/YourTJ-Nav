@@ -10,7 +10,8 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-  actions: write
+  # 写 commit status 需要这一项，缺了会报 Resource not accessible by integration
+  statuses: write
 
 concurrency:
   group: site-request-${{ github.event.issue.number }}
