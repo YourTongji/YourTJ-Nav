@@ -356,6 +356,13 @@ const academic: Site[] = [
     url: "https://ccfddl.com",
     mark: logo("https://ccfddl.com/favicon.ico", "light"),
   },
+  {
+    id: "openreview",
+    title: "OpenReview",
+    description: "开放同行评审平台",
+    url: "https://openreview.net",
+    mark: logo("https://openreview.net/favicon.ico", "light"),
+  },
 ]
 
 const ai: Site[] = [
