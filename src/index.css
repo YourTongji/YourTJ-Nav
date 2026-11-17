@@ -508,10 +508,25 @@
   height: 40px;
 }
 
+/*
+  Popover items sit below their trigger, not above it: 32 next to a 40px corner
+  button reads as "this belongs to that button", 48 reads as "this is the
+  primary control". Coarse pointers get the same bump the corner buttons get.
+*/
+.feedback-chip {
+  width: 32px;
+  height: 32px;
+}
+
 @media (hover: none) and (pointer: coarse) {
   .corner-button {
     width: 44px;
     height: 44px;
+  }
+
+  .feedback-chip {
+    width: 40px;
+    height: 40px;
   }
 }
 

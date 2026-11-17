@@ -72,7 +72,7 @@ export function FeedbackMenu() {
         collisionPadding={16}
         aria-label="反馈渠道"
         aria-orientation="horizontal"
-        className="flex min-w-0 gap-3 p-3 motion-reduce:animate-none"
+        className="flex min-w-0 gap-1.5 rounded-2xl p-1.5 motion-reduce:animate-none"
         onKeyDown={(event) => {
           if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
           event.preventDefault()
@@ -88,7 +88,7 @@ export function FeedbackMenu() {
             <TooltipTrigger asChild>
               <DropdownMenuItem
                 asChild
-                className="size-12 shrink-0 justify-center rounded-full bg-[var(--mat-raised)] p-0 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="feedback-chip shrink-0 justify-center rounded-full bg-[var(--mat-raised)] p-0 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <a
                   href={channel.href}
@@ -100,9 +100,9 @@ export function FeedbackMenu() {
                     <span
                       aria-hidden="true"
                       className="pointer-events-none grid place-items-center [&>svg]:block"
-                      dangerouslySetInnerHTML={{ __html: channel.brand.toSvg({ size: 24 }) }}
+                      dangerouslySetInnerHTML={{ __html: channel.brand.toSvg({ size: 16 }) }}
                     />
-                  ) : <Envelope size={24} aria-hidden="true" />}
+                  ) : <Envelope size={16} aria-hidden="true" />}
                 </a>
               </DropdownMenuItem>
             </TooltipTrigger>
