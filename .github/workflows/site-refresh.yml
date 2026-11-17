@@ -1,0 +1,48 @@
+name: Refresh site PRs
+
+# 站点 PR 的分支是「main + 一个站点」。main 一动，所有还开着的站点 PR 就会落后，
+# 在同一个数组里改东西，GitHub 就会把它们标成 CONFLICTING。
+#
+# 这里在每次 main 更新后，把还开着的站点 Issue 重新跑一遍 site-request，
+# 分支会按最新 main 重建，冲突自然消失。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  # workflow_dispatch 是 GITHUB_TOKEN 触发不了工作流这个限制的例外，派发靠它。
+  actions: write
+
+concurrency:
+  group: site-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-run site-request for every open site PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          numbers=$(gh pr list --repo "$GITHUB_REPOSITORY" \
+            --label site-request --state open --limit 100 \
+            --json headRefName --jq '.[].headRefName' \
+            | sed -n 's#^site/issue-##p' | sort -u)
+
+          if [ -z "$numbers" ]; then
+            echo "没有开着的站点 PR，跳过"
+            exit 0
+          fi
+
+          for n in $numbers; do
+            echo "重跑 #$n"
+            gh workflow run site-request.yml \
+              --repo "$GITHUB_REPOSITORY" --ref main -f issue="$n"
+          done

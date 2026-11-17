@@ -2,9 +2,18 @@ name: Site request → PR
 
 # 把「补充站点」Issue 变成一个只改 src/data/sites.ts 的 PR。
 # 维护者 Approve 后由 auto-merge.yml 合入，deploy.yml 随后重新发布。
+#
+# 三种触发：
+#   issues            Issue 新建、编辑、重开、打标签
+#   workflow_dispatch 手动指定一个 Issue 重跑（site-refresh.yml 也走这条）
 on:
   issues:
     types: [opened, edited, reopened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Issue 编号
+        required: true
 
 permissions:
   contents: write
@@ -14,7 +23,8 @@ permissions:
   statuses: write
 
 concurrency:
-  group: site-request-${{ github.event.issue.number }}
+  # 事件触发时用事件里的编号，手动触发时用输入。
+  group: site-request-${{ github.event.issue.number || inputs.issue }}
   cancel-in-progress: true
 
 jobs:
@@ -23,11 +33,17 @@ jobs:
     # 后者是兜底：模板里写的 labels 只有在仓库已存在同名标签时才生效，
     # 标签缺失时 Issue 会静默地不带标签，只认标签就永远跑不起来。
     if: |
+      github.event_name == 'workflow_dispatch' ||
       contains(github.event.issue.labels.*.name, 'site-request') ||
       startsWith(github.event.issue.title, '[Site]')
     runs-on: ubuntu-latest
     steps:
+      # 永远从最新的 main 出发。分支上只留「main + 这一个站点」的改动，
+      # 别人的 PR 合进来之后这里重跑一次，冲突自然就没了。
       - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
 
       - uses: actions/setup-node@v5
         with:
@@ -42,10 +58,29 @@ jobs:
           gh label create site --repo "$GITHUB_REPOSITORY" \
             --color 0e8a16 --description "站点数据" --force
 
+      # Issue 正文里有换行和引号，不往 shell 里插值，统一从文件读。
+      - name: Read the issue
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ github.event.issue.number || inputs.issue }}
+        run: |
+          if [ -z "$NUMBER" ]; then
+            echo "::error::拿不到 Issue 编号"
+            exit 1
+          fi
+          gh issue view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json title --jq .title \
+            > "$RUNNER_TEMP/title.txt"
+          gh issue view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json body --jq .body \
+            > "$RUNNER_TEMP/body.txt"
+          echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
+          echo "title=$(cat "$RUNNER_TEMP/title.txt")" >> "$GITHUB_OUTPUT"
+
       - name: Apply issue to src/data/sites.ts
         env:
-          ISSUE_BODY: ${{ github.event.issue.body }}
-        run: node scripts/add-site.mjs
+          ISSUE_BODY_FILE: ${{ runner.temp }}/body.txt
+        run: |
+          ISSUE_BODY="$(cat "$ISSUE_BODY_FILE")" node scripts/add-site.mjs
 
       - name: Build the result
         run: |
@@ -62,19 +97,19 @@ jobs:
           # 组织默认禁止 GITHUB_TOKEN 建 PR。配了 SITE_BOT_TOKEN（细粒度 PAT，
           # 只给 Pull requests 读写）就用它，否则退回 GITHUB_TOKEN。
           token: ${{ secrets.SITE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
-          branch: site/issue-${{ github.event.issue.number }}
+          branch: site/issue-${{ steps.issue.outputs.number }}
           base: main
           delete-branch: true
           labels: site-request
           add-paths: src/data/sites.ts
-          commit-message: "feat(sites): 补充站点 #${{ github.event.issue.number }}"
-          title: "feat(sites): ${{ github.event.issue.title }}"
+          commit-message: "feat(sites): 补充站点 #${{ steps.issue.outputs.number }}"
+          title: "feat(sites): ${{ steps.issue.outputs.title }}"
           body: |
-            Closes #${{ github.event.issue.number }}
+            Closes #${{ steps.issue.outputs.number }}
 
-            由 #${{ github.event.issue.number }} 自动生成，只改动 `src/data/sites.ts`。
+            由 #${{ steps.issue.outputs.number }} 自动生成，只改动 `src/data/sites.ts`。
 
-            - 站点：${{ github.event.issue.title }}
+            - 站点：${{ steps.issue.outputs.title }}
             - 分类与地址来自 Issue 表单，解析结果见上一步日志
 
             **审核要点**：分类是否合适、地址是否可访问、是否是推广或镜像站。
@@ -98,7 +133,7 @@ jobs:
         if: steps.pr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE: ${{ github.event.issue.number }}
+          ISSUE: ${{ steps.issue.outputs.number }}
           HAS_LABEL: ${{ contains(github.event.issue.labels.*.name, 'site-request') }}
         run: |
           if [ "$HAS_LABEL" != "true" ]; then
@@ -110,8 +145,8 @@ jobs:
         if: steps.pr.outputs.pull-request-number == ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE: ${{ github.event.issue.number }}
-          BRANCH: site/issue-${{ github.event.issue.number }}
+          ISSUE: ${{ steps.issue.outputs.number }}
+          BRANCH: site/issue-${{ steps.issue.outputs.number }}
         run: |
           LINK="https://github.com/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1"
           BODY=$(printf '%s\n\n%s\n\n%s' \
