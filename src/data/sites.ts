@@ -349,6 +349,13 @@ const academic: Site[] = [
     url: "https://ieeexplore.ieee.org/Xplore/home.jsp",
     mark: brand(Ieee),
   },
+  {
+    id: "ccfddl",
+    title: "CCFDDL",
+    description: "主动跟踪 CCF 排名和全球会议的截止日期",
+    url: "https://ccfddl.com",
+    mark: logo("https://ccfddl.com/favicon.ico", "light"),
+  },
 ]
 
 const ai: Site[] = [
