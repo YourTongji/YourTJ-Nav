@@ -119,6 +119,13 @@ deploy.yml 重新构建并发布
 派发用的是 `workflow_dispatch`。`GITHUB_TOKEN` 触发的事件不会再启动工作流，但
 `workflow_dispatch` 和 `repository_dispatch` 是例外。
 
+同一条限制也影响部署：`auto-merge.yml` 用 `GITHUB_TOKEN` 合入，这次 push 不会触发
+`deploy.yml` 和 `deploy-server.yml`。所以合入之后它会自己派发这两条部署，外加一次
+`site-refresh`。
+
+分支重建会强推，仓库开了 `dismiss_stale_reviews`，所以刷新过的 PR 需要重新 Approve
+一次——内容是从 Issue 文本重新生成的，不会夹带别的改动，但批过的东西被重写就该再看一眼。
+
 要重跑某条 Issue，在 Actions 里选 Site request → PR 再 Run workflow 并填 Issue 编号，
 或者改一下 Issue 的标签。
 
