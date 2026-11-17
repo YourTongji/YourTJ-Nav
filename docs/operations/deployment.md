@@ -106,8 +106,21 @@ deploy.yml 重新构建并发布
 - 人工 PR 不受影响。`auto-merge.yml` 只处理带 `site-request` 标签、并且 head 在本仓库的 PR。
 - 图标。表单留空时自动取 `https://<域名>/favicon.ico`。要自托管图标仍然走人工 PR，
   把文件放进 `public/brand/`，再用 `asset()` 引用。
+- 分支永远从最新 `main` 重建。工作流先 `checkout ref: main`，再往工作区写这一条站点，
+  所以分支内容是「main + 一个站点」，不会随着别人的合入越拖越远。
 
-要重跑某条 Issue，在 Actions 里选 Site request → PR 再 Run workflow，或者改一下 Issue 的标签。
+### 冲突自愈
+
+站点 PR 都改 `src/data/sites.ts` 的同一个数组，`main` 一有新的站点合入，还开着的 PR
+就会被标成 `CONFLICTING`。`site-refresh.yml` 在每次 `main` 更新后，把带 `site-request`
+标签且仍开着的 PR 对应的 Issue 重新跑一遍 `site-request.yml`：分支按最新 `main` 重建、
+强推上去，PR 跟着更新，冲突消失。
+
+派发用的是 `workflow_dispatch`。`GITHUB_TOKEN` 触发的事件不会再启动工作流，但
+`workflow_dispatch` 和 `repository_dispatch` 是例外。
+
+要重跑某条 Issue，在 Actions 里选 Site request → PR 再 Run workflow 并填 Issue 编号，
+或者改一下 Issue 的标签。
 
 ## 自定义域名
 
