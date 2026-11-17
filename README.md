@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YourTongji/YourTJ-Nav/actions/workflows/deploy.yml"><img src="https://img.shields.io/github/actions/workflow/status/YourTongji/YourTJ-Nav/deploy.yml?style=flat-square&label=deploy" alt="Deploy"></a>
+  <a href="https://github.com/YourTongji/YourTJ-Nav/actions/workflows/deploy-server.yml"><img src="https://img.shields.io/github/actions/workflow/status/YourTongji/YourTJ-Nav/deploy-server.yml?style=flat-square&label=deploy" alt="Deploy"></a>
   <a href="https://github.com/YourTongji/YourTJ-Nav/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/YourTongji/YourTJ-Nav/ci.yml?style=flat-square&label=CI" alt="CI"></a>
   <img src="https://img.shields.io/badge/license-GPL--3.0--only-blue?style=flat-square" alt="License">
 </p>
