@@ -208,9 +208,33 @@ export default function App() {
             <section ref={heroRef} className="pb-7 pt-[clamp(1.25rem,6vh,4rem)] sm:pb-11">
               <Collapse open={clock.prefs.visible}>
                 <div className="mb-5">
-                  <Clock prefs={clock.prefs} />
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div>
+                        <Clock prefs={clock.prefs} />
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onSelect={() => clock.update({ visible: false })}>
+                        隐藏时钟
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 </div>
               </Collapse>
+              {/* 时钟藏起来之后，它原来的位置留一块右键区。 */}
+              {clock.prefs.visible ? null : (
+                <ContextMenu>
+                  <ContextMenuTrigger asChild>
+                    <div className="clock-slot mb-5" aria-hidden="true" />
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onSelect={() => clock.update({ visible: true })}>
+                      显示时钟
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              )}
               {/* Above the pins and the grid: the suggestion list drops over them. */}
               <div ref={heroSearchRef} className="hero-search relative z-30">
                 <SearchBar
@@ -231,8 +255,6 @@ export default function App() {
                     setCatHatchAt(spot)
                     setCatVisible(true)
                   }}
-                  quoteVisible={quoteVisible}
-                  onShowQuote={() => setQuoteVisible(true)}
                   catHatchAt={catHatchAt}
                 />
               </div>
@@ -249,6 +271,17 @@ export default function App() {
                   <Hitokoto onHide={() => setQuoteVisible(false)} />
                 </div>
               </Collapse>
+              {/* 一言藏起来之后，它原来的位置留一块右键区。 */}
+              {quoteVisible ? null : (
+                <ContextMenu>
+                  <ContextMenuTrigger asChild>
+                    <div className="quote-slot mt-4 sm:mt-5" aria-hidden="true" />
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onSelect={() => setQuoteVisible(true)}>显示一言</ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              )}
             </section>
           )}
 

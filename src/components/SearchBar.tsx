@@ -70,9 +70,6 @@ type SearchBarProps = {
   onCatSpot?: (spot: number) => void
   /** 猫藏起来之后，在搜索框上方右键能把它叫回来，落点就是光标那一下。 */
   onShowCat?: (spot: number) => void
-  /** 一言的开关，和猫同一个入口。 */
-  quoteVisible?: boolean
-  onShowQuote?: () => void
   /** 从右键菜单叫回来时指定的破壳位置；不传就随机挑。 */
   catHatchAt?: number | null
 }
@@ -89,8 +86,6 @@ export function SearchBar({
   catSpot = 0,
   onCatSpot,
   onShowCat,
-  quoteVisible = true,
-  onShowQuote,
   catHatchAt = null,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -304,10 +299,10 @@ export function SearchBar({
       </label>
 
       {/*
-        猫和一言都能从自己的右键菜单里藏起来。藏起来之后这里留一条空白区，
-        在搜索框上方右键就能把它们叫回来；猫落在光标那一下的位置破壳。
+        猫藏起来之后，它原来趴的那条上沿留一块空白：右键就在这里把它叫回来，
+        落点就是光标那一下。一言和时钟各自在自己的位置上恢复。
       */}
-      {(!cat && onShowCat) || (!quoteVisible && onShowQuote) ? (
+      {!cat && onShowCat ? (
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
@@ -319,12 +314,7 @@ export function SearchBar({
             />
           </ContextMenuTrigger>
           <ContextMenuContent>
-            {!cat && onShowCat ? (
-              <ContextMenuItem onSelect={() => onShowCat(spotAtPointer())}>显示小猫</ContextMenuItem>
-            ) : null}
-            {!quoteVisible && onShowQuote ? (
-              <ContextMenuItem onSelect={onShowQuote}>显示一言</ContextMenuItem>
-            ) : null}
+            <ContextMenuItem onSelect={() => onShowCat(spotAtPointer())}>显示小猫</ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
       ) : null}

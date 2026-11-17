@@ -353,6 +353,18 @@
   cat or the quote is hidden, so it never intercepts a right-click on a page
   that has nothing to bring back.
 */
+/*
+  时钟和一言藏起来之后，各自在原位留一条右键区。高度按它们平时的样子给，
+  够点中就行——不留的话这两块地方就没有东西能右键了。
+*/
+.clock-slot {
+  height: 32px;
+}
+
+.quote-slot {
+  height: 32px;
+}
+
 .search-cat-slot {
   position: absolute;
   left: 0;
