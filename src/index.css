@@ -357,12 +357,21 @@
   时钟和一言藏起来之后，各自在原位留一条右键区。高度按它们平时的样子给，
   够点中就行——不留的话这两块地方就没有东西能右键了。
 */
+/* 都往上长，落在元素原来占的那段留白里：不占版面，也不压到下面的内容。 */
 .clock-slot {
-  height: 32px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 40px;
 }
 
 .quote-slot {
-  height: 32px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 24px;
 }
 
 .search-cat-slot {
@@ -1144,6 +1153,11 @@ html[data-transition="theme"]::view-transition-new(root) {
 
   --ease-out-soft: cubic-bezier(0.22, 0.8, 0.3, 1);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  /*
+    高度收放专用。spring 前段太快——95px 的区块第一帧就跳掉 37px，然后慢慢蹭完，
+    看着是「猛地一抽再爬」。这条进出对称，起手是缓的。
+  */
+  --ease-collapse: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer base {

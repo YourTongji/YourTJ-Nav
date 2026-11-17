@@ -21,7 +21,7 @@ export function Collapse({
     <div
       inert={!open}
       className={cn(
-        "grid transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-spring)] motion-reduce:transition-none",
+        "grid transition-[grid-template-rows,opacity] duration-[240ms] ease-[var(--ease-collapse)] motion-reduce:transition-none",
         open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
         className,
       )}
