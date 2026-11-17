@@ -110,6 +110,7 @@ function randomFree(rim: Rim) {
  */
 export function SearchCat({
   visible,
+  typing,
   onHide,
   spot,
   onSpot,
@@ -117,6 +118,8 @@ export function SearchCat({
   fieldRef,
 }: {
   visible: boolean
+  /** Someone is typing in the field: the cat sits up and types along. */
+  typing: boolean
   onHide: () => void
   /** Where along the rim it sits, 0 to 1; remembered, so it stays where it was put. */
   spot: number
@@ -128,6 +131,10 @@ export function SearchCat({
 }) {
   const calm = usePrefersReducedMotion()
   const [present, setPresent] = useState(visible)
+  // Loaded on the first keystroke, not with the page: it is the bigger of the two.
+  const [typingSrc, setTypingSrc] = useState<string | null>(null)
+  // 图还没解码完就切过去，静止那张已经淡出、新的还没画出来，会闪一下空白。
+  const [typingReady, setTypingReady] = useState(false)
   const [phase, setPhase] = useState<Phase>("rest")
   const [hopping, setHopping] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -148,6 +155,12 @@ export function SearchCat({
   const dragged = useRef(false)
   const hiding = useRef(false)
   const fromKeyboard = useRef(false)
+
+  // 第一次敲键盘才去取：它比静止那张大，不该占首屏。
+  useEffect(() => {
+    if (!typing || calm || typingSrc) return
+    setTypingSrc(`${import.meta.env.BASE_URL}cat-typing.webp`)
+  }, [typing, calm, typingSrc])
 
   // Follows the switch, not mounting: a page load shows the cat as it already is.
   useEffect(() => {
@@ -407,6 +420,7 @@ export function SearchCat({
           data-hop={hopping ? "true" : undefined}
           aria-keyshortcuts="ArrowLeft ArrowRight"
           data-phase={phase === "rest" ? undefined : phase}
+          data-typing={typing && typingReady && phase === "rest" ? "true" : undefined}
           style={{ "--cat-spot": spot } as CSSProperties}
           onClick={hop}
           onPointerDown={onPointerDown}
@@ -434,8 +448,19 @@ export function SearchCat({
             aria-hidden="true"
             draggable={false}
             decoding="async"
-            className="search-cat-img"
+            className="search-cat-img search-cat-rest"
           />
+          {typingSrc ? (
+            <img
+              src={typingSrc}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              decoding="async"
+              onLoad={() => setTypingReady(true)}
+              className="search-cat-img search-cat-typing"
+            />
+          ) : null}
         </button>
       </ContextMenuTrigger>
       <ContextMenuContent

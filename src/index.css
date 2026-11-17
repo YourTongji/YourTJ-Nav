@@ -371,6 +371,44 @@
   pointer-events: none;
   -webkit-user-drag: none;
   filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.22));
+  transition: opacity 180ms var(--ease-out-soft);
+}
+
+/*
+  Typing: the cat sits up behind a little keyboard. It is taller than the lying
+  pose, so it is anchored to the same rim and allowed to grow upward — the two
+  layers share a bottom edge, which is what makes the swap read as one animal
+  changing pose rather than two images cross-fading.
+*/
+.search-cat-typing {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: auto;
+  opacity: 0;
+  transform: translateY(5px) scale(0.96);
+  transform-origin: 50% 100%;
+  transition:
+    opacity 170ms var(--ease-out-soft),
+    transform 240ms var(--ease-spring);
+}
+
+.search-cat[data-typing="true"] .search-cat-typing {
+  opacity: 1;
+  transform: none;
+}
+
+.search-cat[data-typing="true"] .search-cat-rest {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-cat-img,
+  .search-cat-typing {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* Squash, leap, land, settle — an easter egg that never fights the loop. */

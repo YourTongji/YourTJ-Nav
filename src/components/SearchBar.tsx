@@ -19,6 +19,9 @@ import type { SearchController } from "@/hooks/use-search"
 import { suggest, type SuggestSource } from "@/lib/suggest"
 
 /** The hero has the room for a full list; the bar's field drops a shorter one. */
+/** 停手多久小猫趴回去。短了会一停一顿，长了像卡住。 */
+const TYPING_HOLD_MS = 1100
+
 const LIMITS = {
   hero: { sites: 5, history: 3, idle: 6 },
   compact: { sites: 4, history: 2, idle: 5 },
@@ -74,6 +77,13 @@ export function SearchBar({
   onCatSpot,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  // 敲字时小猫站起来跟着敲，停手一会儿再趴回去。
+  const [typing, setTyping] = useState(false)
+  const typingTimer = useRef<number | null>(null)
+
+  useEffect(() => () => {
+    if (typingTimer.current) window.clearTimeout(typingTimer.current)
+  }, [])
   const formRef = useRef<HTMLFormElement>(null)
   const { query, setQuery, engine, engineId, setEngineId } = search
   const compact = variant === "compact"
@@ -307,6 +317,9 @@ export function SearchBar({
         onChange={(event) => {
           setDismissed(false)
           setQuery(event.target.value)
+          setTyping(true)
+          if (typingTimer.current) window.clearTimeout(typingTimer.current)
+          typingTimer.current = window.setTimeout(() => setTyping(false), TYPING_HOLD_MS)
         }}
         onKeyDown={onKeys}
         // The list belongs to the text field, not to the engine menu or the buttons beside it.
@@ -390,6 +403,7 @@ export function SearchBar({
       {compact ? null : (
         <SearchCat
           visible={cat}
+          typing={typing}
           onHide={() => onHideCat?.()}
           spot={catSpot}
           onSpot={(spot) => onCatSpot?.(spot)}
