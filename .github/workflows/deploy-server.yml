@@ -1,0 +1,126 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # 配置好 secrets 后在 Settings → Variables 设 SERVER_DEPLOY_ENABLED=true 启用；
+    # 未启用时跳过而非失败。
+    if: ${{ vars.SERVER_DEPLOY_ENABLED == 'true' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 服务器部署在根路径，与 Pages 的 base_path 无关。
+      - name: Build
+        run: npm run build
+        env:
+          VITE_BASE: /
+
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          # 缺 secret 时给一句人话，而不是让 ssh 报 host key / auth 失败。
+          [ -n "$DEPLOY_SSH_KEY" ] || { echo "DEPLOY_SSH_KEY 未配置" >&2; exit 1; }
+          [ -n "$DEPLOY_KNOWN_HOSTS" ] || { echo "DEPLOY_KNOWN_HOSTS 未配置" >&2; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # 指纹固定：来自服务器 /etc/ssh/ssh_host_ed25519_key.pub，不做 keyscan。
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload dist
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          tar -czf /tmp/yourtj-dist.tgz -C dist .
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/id_deploy \
+            /tmp/yourtj-dist.tgz yourtj-nav@"$DEPLOY_HOST":/tmp/yourtj-dist.tgz
+
+      # 原子切换。自检失败自动切回上一版。保留最近 3 个版本目录用于回滚。
+      - name: Atomic switch
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/id_deploy \
+            yourtj-nav@"$DEPLOY_HOST" 'bash -s' -- "$GITHUB_SHA" <<'EOF'
+          set -euo pipefail
+          BASE=/var/www/yourtj-nav
+          SHA="${1:0:12}"
+          # 空哈希会让 REL 退化成 $BASE/，下面的 rm -rf 会把整个部署目录清掉。
+          if [ -z "$SHA" ]; then echo "缺少 commit 哈希" >&2; exit 1; fi
+          REL="$BASE/$SHA"
+
+          # 同一版本已经在线上就跳过：否则下面清目录时会删掉正在服务的那个版本。
+          CUR=""
+          if [ -L "$BASE/current" ]; then CUR="$(readlink -f "$BASE/current")"; fi
+          if [ "$CUR" = "$REL" ]; then
+            echo "版本 $SHA 已在线上，跳过"
+            exit 0
+          fi
+
+          # 上次中断留下的临时目录，concurrency 保证不会有别人在用。
+          rm -rf "$BASE"/.staging-* 2>/dev/null || true
+
+          # 先解到临时目录，校验通过才落到版本目录：解压失败碰不到任何现有版本。
+          STAGE="$BASE/.staging-$SHA"
+          mkdir -p "$STAGE"
+          tar -xzf /tmp/yourtj-dist.tgz -C "$STAGE"
+          test -f "$STAGE/index.html"
+          rm -rf "$REL"
+          mv "$STAGE" "$REL"
+          # tar 会把压缩包里的目录 mtime 还原回来，几个版本的 mtime 会一模一样，
+          # 下面按 mtime 排序清理就变成随机保留了。这里盖成部署时间。
+          touch "$REL"
+          rm -f /tmp/yourtj-dist.tgz
+
+          PREV="$CUR"
+          ln -sfn "$REL" "$BASE/current.new"
+          mv -T "$BASE/current.new" "$BASE/current"
+
+          # 严格 200 才算健康（-f 会放过 3xx）。`|| true` 不能少：
+          # curl 自身失败时赋值返回非零，set -e 会直接退出，回滚就轮不到了。
+          code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+            --resolve n.yourtj.de:443:127.0.0.1 https://n.yourtj.de/ || true)"
+          if [ "$code" != "200" ]; then
+            if [ -n "$PREV" ]; then
+              ln -sfn "$PREV" "$BASE/current.new"
+              mv -T "$BASE/current.new" "$BASE/current"
+              echo "health check failed (http=$code), rolled back to $PREV" >&2
+            else
+              echo "health check failed (http=$code), no previous version to roll back to" >&2
+            fi
+            exit 1
+          fi
+
+          cd "$BASE"
+          # 只清理 12 位提交哈希命名的版本目录，且永不删除当前在用版本。
+          CURNOW="$(basename "$(readlink current)")"
+          if [ -n "$CURNOW" ]; then
+            # `|| true`：没有可删的版本时 grep 退出码是 1，配合 pipefail 会让整个脚本失败。
+            { ls -1t | grep -E '^[0-9a-f]{12}$' | grep -vxF "$CURNOW" | tail -n +3 \
+              | xargs -r rm -rf --; } || true
+          fi
+          echo "deployed $REL"
+          EOF
