@@ -3,7 +3,7 @@ import type { BrandIconFn } from "reicon-brands"
 /** Public assets live under the deploy base, which is not always "/". */
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`
 
-import { Autodesk, Github, Ieee, Origin, Photopea } from "reicon-brands"
+import { Arxiv, Autodesk, Github, Ieee, Origin, Photopea } from "reicon-brands"
 import type { IconComponent } from "reicon-react"
 import {
   AwardCertificate,
@@ -340,7 +340,7 @@ const academic: Site[] = [
     title: "Arxiv",
     description: "全球规模和影响力最大的开放获取预印本平台",
     url: "https://arxiv.org",
-    mark: logo("https://arxiv.org/favicon.ico", "light"),
+    mark: brand(Arxiv),
   },
   {
     id: "ieeexplore",
