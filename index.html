@@ -25,10 +25,20 @@
       */
       (function () {
         try {
-          var source = localStorage.getItem("yourtj-nav-wallpaper") || "anime";
+          var source = localStorage.getItem("yourtj-nav-wallpaper");
           if (source === "custom") return;
           var last = JSON.parse(localStorage.getItem("yourtj-nav-wallpaper-last") || "{}");
-          var entry = last && last[source];
+          if (!last) return;
+          var entry = source ? last[source] : null;
+          if (!entry) {
+            // No stored source: take the newest cached entry. Picking a literal
+            // here would silently drift from defaultSourceId in the data layer.
+            Object.keys(last).forEach(function (key) {
+              var item = last[key];
+              if (!item || typeof item.url !== "string") return;
+              if (!entry || (item.at || 0) > (entry.at || 0)) entry = item;
+            });
+          }
           if (entry && typeof entry.url === "string" && entry.url.indexOf("http") === 0) {
             document.documentElement.style.setProperty(
               "--boot-wall",
@@ -58,6 +68,12 @@
         } catch (e) {}
       })()
     </script>
+    <script
+      defer
+      src="https://umi.yourtj.de/script.js"
+      data-website-id="1c4746fc-95cc-4e00-899a-40584211485d"
+      data-do-not-track="true"
+    ></script>
     <style>
       html,
       body {
