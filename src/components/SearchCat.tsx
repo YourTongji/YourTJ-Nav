@@ -114,6 +114,7 @@ function randomFree(rim: Rim) {
 export function SearchCat({
   visible,
   typing,
+  hatchAt = null,
   onHide,
   spot,
   onSpot,
@@ -123,6 +124,8 @@ export function SearchCat({
   visible: boolean
   /** Someone is typing in the field: the cat sits up and types along. */
   typing: boolean
+  /** 从右键菜单叫回来时指定的破壳位置，0 到 1；不传就随机挑一个空位。 */
+  hatchAt?: number | null
   onHide: () => void
   /** Where along the rim it sits, 0 to 1; remembered, so it stays where it was put. */
   spot: number
@@ -145,6 +148,11 @@ export function SearchCat({
   const eggRef = useRef<HTMLSpanElement>(null)
   const settled = useRef(visible)
   const spotRef = useRef(spot)
+  // 用 ref 读，避免把 hatchAt 放进动画 effect 的依赖里，那会重启破壳动画。
+  const hatchAtRef = useRef<number | null>(hatchAt)
+  useLayoutEffect(() => {
+    hatchAtRef.current = hatchAt
+  }, [hatchAt])
   const drag = useRef<{
     pointer: number
     startX: number
@@ -232,7 +240,7 @@ export function SearchCat({
         .catch(() => {})
     } else {
       // Chosen here, once the cat is laid out, so the rim and the clock can be measured.
-      const next = shell ? randomFree(measureRim(button, shell)) : 0
+      const next = hatchAtRef.current ?? (shell ? randomFree(measureRim(button, shell)) : 0)
       spotRef.current = next
       button.style.setProperty("--cat-spot", String(next))
       onSpot(next)

@@ -67,6 +67,8 @@ export default function App() {
   const [quoteVisible, , setQuoteVisible] = useBoolPref("yourtj-nav-quote", true)
   const [catVisible, , setCatVisible] = useBoolPref("yourtj-nav-cat", true)
   const [catSpot, setCatSpot] = useNumberPref("yourtj-nav-cat-spot", 0, 0, 1)
+  // 从右键菜单叫回来时指定破壳位置；普通开关走随机。
+  const [catHatchAt, setCatHatchAt] = useState<number | null>(null)
   const clock = useClockPrefs()
   const [searchWidth, setSearchWidth] = useNumberPref("yourtj-nav-search-width", 608, 420, 900)
   const [material, setMaterial] = useEnumPref<MaterialId>(
@@ -218,9 +220,20 @@ export default function App() {
                   source={suggestSource}
                   onVisit={visit}
                   cat={catVisible}
-                  onHideCat={() => setCatVisible(false)}
+                  onHideCat={() => {
+                    setCatHatchAt(null)
+                    setCatVisible(false)
+                  }}
                   catSpot={catSpot}
                   onCatSpot={setCatSpot}
+                  onShowCat={(spot) => {
+                    setCatSpot(spot)
+                    setCatHatchAt(spot)
+                    setCatVisible(true)
+                  }}
+                  quoteVisible={quoteVisible}
+                  onShowQuote={() => setQuoteVisible(true)}
+                  catHatchAt={catHatchAt}
                 />
               </div>
               <PinnedBar
@@ -233,7 +246,7 @@ export default function App() {
               />
               <Collapse open={quoteVisible}>
                 <div className="mt-4 sm:mt-5">
-                  <Hitokoto />
+                  <Hitokoto onHide={() => setQuoteVisible(false)} />
                 </div>
               </Collapse>
             </section>

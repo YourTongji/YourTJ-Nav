@@ -348,6 +348,20 @@
   user-select: none;
 }
 
+/*
+  The empty strip above the pill where the cat lives. It only exists while the
+  cat or the quote is hidden, so it never intercepts a right-click on a page
+  that has nothing to bring back.
+*/
+.search-cat-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 1px);
+  height: 48px;
+  z-index: 2;
+}
+
 /* Picked up: a little off the rim, leaning into the pull (SearchCat.tsx). */
 .search-cat[data-drag="true"] {
   cursor: grabbing;

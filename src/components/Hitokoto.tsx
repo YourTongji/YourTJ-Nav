@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react"
 import { ArrowsRotate, Feather } from "reicon-react"
 
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useHitokoto } from "@/hooks/use-hitokoto"
 import { cn } from "@/lib/utils"
@@ -36,7 +42,7 @@ function Wave({ width }: { width: number }) {
   )
 }
 
-export function Hitokoto() {
+export function Hitokoto({ onHide }: { onHide?: () => void }) {
   const { quote, status, refresh } = useHitokoto()
   const source = quote ? attribution(quote.from, quote.fromWho) : ""
   const textRef = useRef<HTMLParagraphElement>(null)
@@ -66,7 +72,7 @@ export function Hitokoto() {
     )
   }
 
-  return (
+  const body = (
     <div className="group relative mx-auto w-fit max-w-[36rem] text-center">
       {/*
         The quill hangs outside the line the way lumno's shuffle button does, so
@@ -113,5 +119,16 @@ export function Hitokoto() {
         </button>
       </div>
     </div>
+  )
+
+  if (!onHide) return body
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{body}</ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onSelect={onHide}>隐藏一言</ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
