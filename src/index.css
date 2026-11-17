@@ -534,14 +534,40 @@
 .feedback-key {
   display: grid;
   place-items: center;
-  min-width: 16px;
-  height: 16px;
-  padding-inline: 3px;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 4px;
   border-radius: 5px;
-  border: 1px solid var(--hairline);
-  color: var(--ink-muted);
+  border: 1px solid var(--hairline-strong);
+  /* 底边厚一点，读起来才是一颗能按下去的键，而不是一个字母。 */
+  box-shadow:
+    0 1.5px 0 var(--hairline-strong),
+    inset 0 1px 0 oklch(1 0 0 / 0.5);
+  background-color: var(--mat-raised);
+  color: var(--ink);
+  font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 10px;
+  font-weight: 500;
   line-height: 1;
+  transition:
+    transform 110ms var(--ease-out-soft),
+    box-shadow 110ms var(--ease-out-soft);
+}
+
+/* 按下 C 的时候跟着沉一下，把「这是个按键」说清楚。 */
+.feedback-key[data-pressed="true"] {
+  transform: translateY(1.5px);
+  box-shadow:
+    0 0 0 var(--hairline-strong),
+    inset 0 1px 0 oklch(0 0 0 / 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-key,
+  .feedback-key[data-pressed="true"] {
+    transform: none;
+    transition: none;
+  }
 }
 
 /*

@@ -58,12 +58,15 @@ export function FeedbackMenu() {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [tipId, setTipId] = useState<string | null>(null)
+  const [keyPressed, setKeyPressed] = useState(false)
   const timer = useRef<number | null>(null)
   const closeTimer = useRef<number | null>(null)
+  const pressTimer = useRef<number | null>(null)
 
   useEffect(() => () => {
     if (timer.current) window.clearTimeout(timer.current)
     if (closeTimer.current) window.clearTimeout(closeTimer.current)
+    if (pressTimer.current) window.clearTimeout(pressTimer.current)
   }, [])
 
   /*
@@ -158,6 +161,9 @@ export function FeedbackMenu() {
             const channel = channels.find((item) => item.id === id)
             if (channel?.copyValue) {
               event.preventDefault()
+              setKeyPressed(true)
+              if (pressTimer.current) window.clearTimeout(pressTimer.current)
+              pressTimer.current = window.setTimeout(() => setKeyPressed(false), 140)
               void copy(channel)
               return
             }
@@ -236,7 +242,11 @@ export function FeedbackMenu() {
                   ) : null}
                 </span>
                 {channel.copyValue ? (
-                  <kbd className="feedback-key" aria-hidden="true">
+                  <kbd
+                    className="feedback-key"
+                    data-pressed={keyPressed || undefined}
+                    aria-hidden="true"
+                  >
                     C
                   </kbd>
                 ) : null}
