@@ -17,6 +17,9 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 
+/** 换 cat-typing.webp 的内容时 +1，否则浏览器会继续用缓存里的旧图。 */
+const TYPING_ASSET_VERSION = "2"
+
 /** An animated decoration should hold still when the system asks for calm. */
 function usePrefersReducedMotion() {
   const [calm, setCalm] = useState(() =>
@@ -157,9 +160,10 @@ export function SearchCat({
   const fromKeyboard = useRef(false)
 
   // 第一次敲键盘才去取：它比静止那张大，不该占首屏。
+  // 文件名不变时浏览器会一直用缓存里的旧图，换素材就把版本号 +1。
   useEffect(() => {
     if (!typing || calm || typingSrc) return
-    setTypingSrc(`${import.meta.env.BASE_URL}cat-typing.webp`)
+    setTypingSrc(`${import.meta.env.BASE_URL}cat-typing.webp?v=${TYPING_ASSET_VERSION}`)
   }, [typing, calm, typingSrc])
 
   // Follows the switch, not mounting: a page load shows the cat as it already is.
