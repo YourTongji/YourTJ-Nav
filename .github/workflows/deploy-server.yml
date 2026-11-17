@@ -47,7 +47,7 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           tar -czf /tmp/yourtj-dist.tgz -C dist .
-          scp -i ~/.ssh/id_deploy /tmp/yourtj-dist.tgz admin@"$DEPLOY_HOST":/tmp/yourtj-dist.tgz
+          scp -i ~/.ssh/id_deploy /tmp/yourtj-dist.tgz yourtj-nav@"$DEPLOY_HOST":/tmp/yourtj-dist.tgz
 
       # 原子切换：新版本目录就绪并自检通过后才替换 current 符号链接；
       # 自检失败自动切回上一版。保留最近 3 个版本目录用于回滚。
@@ -55,7 +55,7 @@ jobs:
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
-          ssh -i ~/.ssh/id_deploy admin@"$DEPLOY_HOST" 'bash -s' -- "$GITHUB_SHA" <<'EOF'
+          ssh -i ~/.ssh/id_deploy yourtj-nav@"$DEPLOY_HOST" 'bash -s' -- "$GITHUB_SHA" <<'EOF'
           set -euo pipefail
           BASE=/var/www/yourtj-nav
           REL="$BASE/${1:0:12}"
