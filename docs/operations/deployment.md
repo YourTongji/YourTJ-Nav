@@ -1,7 +1,8 @@
 # 部署与发布
 
-目前只有一个目标：GitHub Pages。产物是纯静态文件，换成对象存储或 CDN 时只要 `VITE_BASE` 对得上，
-代码不用改。
+两个目标并行：GitHub Pages 和自建服务器。推送 `main` 时两条工作流各自构建、各自发布，互不依赖。
+正式入口 `n.yourtj.de` 由自建服务器承载（经 Cloudflare 代理），Pages 的 github.io 地址保留可用，
+作为备用路径。产物是纯静态文件，换成对象存储或 CDN 时只要 `VITE_BASE` 对得上，代码不用改。
 
 ## GitHub Pages
 
@@ -34,6 +35,46 @@ user 或 org page 以及自定义域名是空。工作流把它拼成 `VITE_BASE
   - 组件里用 `` `${import.meta.env.BASE_URL}cat.webp` ``
   - `index.html` 里用相对路径 `./yourtj-logo.png`
 - 写死 `"/brand/x.png"`，在 project page 上一定 404。
+
+## 自建服务器
+
+`.github/workflows/deploy-server.yml` 把同一份代码以 `VITE_BASE=/` 构建后发布到自建服务器。
+与 Pages 部署并行，互不影响；构建失败不会走到上传和切换。
+
+### 一次性配置
+
+Settings → Secrets and variables → Actions：
+
+| 名称 | 类型 | 内容 |
+|---|---|---|
+| `DEPLOY_HOST` | Secret | 服务器公网 IPv4 |
+| `DEPLOY_SSH_KEY` | Secret | 专用部署私钥（ed25519，登录无 sudo 的 `yourtj-nav` 用户） |
+| `DEPLOY_KNOWN_HOSTS` | Secret | 服务器主机公钥行，取自 `/etc/ssh/ssh_host_ed25519_key.pub`，前面加主机地址；固定指纹，不做 keyscan |
+| `SERVER_DEPLOY_ENABLED` | Variable | `true` 时启用；未设置时工作流跳过而非失败 |
+
+服务器侧前提：`yourtj-nav` 用户可密钥登录，`/var/www/yourtj-nav/` 归其所有，
+nginx root 指向 `current` 符号链接（`disable_symlinks off`）。
+
+### 目录结构与切换
+
+```text
+/var/www/yourtj-nav/
+  <sha12>/     每个 commit 一个版本目录
+  current →    指向在用版本的符号链接
+```
+
+新版本解压到独立目录并校验 `index.html` 后，用 `mv -T` 原子替换 `current`；
+随后经 443 全链路探活（严格 200），失败自动切回上一版并以非零码退出。
+保留最近 3 个版本目录（当前版 + 2 个旧版），只清理提交哈希命名的目录。
+
+### 回滚
+
+把 `current` 指回上一个版本目录即可：
+
+```bash
+ln -sfn /var/www/yourtj-nav/<旧sha12> /var/www/yourtj-nav/current.new
+mv -T /var/www/yourtj-nav/current.new /var/www/yourtj-nav/current
+```
 
 ## 自动补充站点
 
