@@ -3,7 +3,7 @@ import type { BrandIconFn } from "reicon-brands"
 /** Public assets live under the deploy base, which is not always "/". */
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`
 
-import { Autodesk, Github, Origin, Photopea } from "reicon-brands"
+import { Autodesk, Github, Ieee, Origin, Photopea } from "reicon-brands"
 import type { IconComponent } from "reicon-react"
 import {
   AwardCertificate,
@@ -347,7 +347,7 @@ const academic: Site[] = [
     title: "IEEE",
     description: "IEEE（电气与电子工程师学会）数字资源库",
     url: "https://ieeexplore.ieee.org/Xplore/home.jsp",
-    mark: logo("https://ieeexplore.ieee.org/favicon.ico", "light"),
+    mark: brand(Ieee),
   },
 ]
 
