@@ -175,8 +175,15 @@ Tab 顺序可能不一致：Tab 仍按文件夹顺序走。
 
 ## 反馈
 
-右下角最左边的按钮，打开仓库的 [Issue 模板选择页](https://github.com/YourTongji/YourTJ-Nav/issues/new/choose)，
-问题反馈、功能建议和补充站点各有表单。地址写在 `src/data/project.ts`，别处要链回仓库也从那里取。
+右下角最左边的按钮向上展开一个紧凑的图标面板，不展示标题、欢迎语、推荐标签或箭头。从左到右依次是：
+
+- GitHub 图标：在新标签页打开仓库的 [Issue 模板选择页](https://github.com/YourTongji/YourTJ-Nav/issues/new/choose)，问题反馈、功能建议和补充站点各有表单。
+- YourTJ团队邮箱：通过 `mailto:support@yourtj.de` 打开用户配置的邮件应用，不直接发送邮件。
+- YourTJ反馈QQ群：在新标签页打开 QQ 官方加群链接。
+
+三个入口均为 48 × 48 像素的圆形链接按钮，分别使用 GitHub、信封和 QQ 图标。悬停或键盘聚焦时，在图标上方显示包含渠道名称及简介的小卡片；默认只显示三个图标。
+图标保留无障碍名称，触屏可直接点击打开对应渠道。菜单支持左右方向键切换图标、Enter 选择及 Escape 关闭；按 Escape 后焦点回到反馈按钮。
+反馈链接、邮箱和 QQ 加群链接集中维护在 `src/data/project.ts`，别处要链回仓库也从那里取。
 
 做法参考 lumno。它和旁边两个按钮是同一种玻璃按钮，材质、尺寸、悬停和按下的反馈都一样。
 
