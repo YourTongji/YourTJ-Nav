@@ -9,6 +9,20 @@
  */
 import { readFileSync, writeFileSync } from "node:fs"
 
+/*
+ * 结果写到 RESULT_FILE，工作流读它决定下一步：
+ *   added      已写入 sites.ts
+ *   duplicate  地址已经在清单里
+ *   error      校验没过，原因在 message 里
+ */
+const RESULT_FILE = process.env.RESULT_FILE || "/tmp/site-result.json"
+const UA =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+
+function report(status, extra = {}) {
+  writeFileSync(RESULT_FILE, JSON.stringify({ status, ...extra }), "utf8")
+}
+
 const FILE = "src/data/sites.ts"
 
 const CATEGORIES = {
@@ -39,6 +53,7 @@ function parseIssueForm(body) {
 }
 
 function fail(message) {
+  report("error", { message })
   console.error(`::error::${message}`)
   process.exit(1)
 }
@@ -59,6 +74,76 @@ function normalizeUrl(raw) {
   const value = raw.trim()
   if (/^https?:\/\//i.test(value)) return value
   return `https://${value}`
+}
+
+/** 靠文件头判断真实类型：Content-Type 经常是错的，403 页面也会说自己 200。 */
+function sniff(buffer) {
+  const b = buffer
+  const at = (offset, bytes) => bytes.every((v, i) => b[offset + i] === v)
+  if (at(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "png"
+  if (at(0, [0xff, 0xd8, 0xff])) return "jpeg"
+  if (at(0, [0x47, 0x49, 0x46, 0x38])) return "gif"
+  if (at(0, [0x52, 0x49, 0x46, 0x46]) && at(8, [0x57, 0x45, 0x42, 0x50])) return "webp"
+  if (at(0, [0x00, 0x00, 0x01, 0x00])) return "ico"
+  if (at(0, [0x42, 0x4d])) return "bmp"
+  const head = buffer.subarray(0, 256).toString("utf8").trimStart().toLowerCase()
+  if (head.startsWith("<?xml") || head.startsWith("<svg")) return "svg"
+  return null
+}
+
+/** 抓一个图标，成功返回 { url, kind }，失败抛错。 */
+async function fetchIcon(url) {
+  let response
+  try {
+    response = await fetch(url, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(8000),
+      headers: { "user-agent": UA, accept: "image/*,*/*;q=0.8" },
+    })
+  } catch (error) {
+    throw new Error(`请求失败（${error.name === "TimeoutError" ? "超时" : error.message}）`)
+  }
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+  const buffer = Buffer.from(await response.arrayBuffer())
+  if (buffer.length < 60) throw new Error(`内容太小（${buffer.length} 字节）`)
+
+  const kind = sniff(buffer)
+  if (!kind) {
+    const type = response.headers.get("content-type") ?? "未知"
+    throw new Error(`不是图片（content-type: ${type}）`)
+  }
+  return { url: response.url || url, kind, bytes: buffer.length }
+}
+
+/**
+ * 表单留空时按常见路径挨个试。全失败就报错——宁可让人补一个图标地址，
+ * 也不要合进去一条没有图标的站点。
+ */
+async function probeIcon(explicit, host) {
+  const candidates = explicit
+    ? [explicit]
+    : [
+        `https://${host}/favicon.ico`,
+        `https://${host}/favicon.png`,
+        `https://${host}/apple-touch-icon.png`,
+      ]
+
+  const problems = []
+  for (const candidate of candidates) {
+    try {
+      const found = await fetchIcon(candidate)
+      console.log(`::notice::图标可用：${found.url}（${found.kind}, ${found.bytes} 字节）`)
+      return found
+    } catch (error) {
+      problems.push(`${candidate} → ${error.message}`)
+    }
+  }
+
+  throw new Error(
+    `没有取到可用的图标，试过 ${candidates.length} 个地址：${problems.join("；")}。` +
+      `请在表单的「图标地址（可选）」里填一个能直接访问的图片地址。`,
+  )
 }
 
 function quote(text) {
@@ -89,9 +174,7 @@ try {
   fail(`地址解析失败：${url}`)
 }
 
-const icon = /^https?:\/\//i.test(iconInput)
-  ? iconInput
-  : `https://${host}/favicon.ico`
+const iconCandidate = /^https?:\/\//i.test(iconInput) ? iconInput : ""
 
 const source = readFileSync(FILE, "utf8")
 
@@ -103,8 +186,17 @@ const existing = new Set(
 )
 const key = url.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "").toLowerCase()
 if (existing.has(key)) {
+  report("duplicate", { url, title })
   console.log(`::notice::${url} 已经在清单里，跳过。`)
   process.exit(0)
+}
+
+// 图标探测放在这里：地址和分类都过了，只差确认图标拿得到。
+let icon
+try {
+  icon = await probeIcon(iconCandidate, host)
+} catch (error) {
+  fail(error.message)
 }
 
 let id = slugify(title, url)
@@ -115,7 +207,7 @@ const entry = `  {
     title: "${quote(title)}",
     description: "${quote(description)}",
     url: "${quote(url)}",
-    mark: logo("${quote(icon)}", "light"),
+    mark: logo("${quote(icon.url)}", "light"),
   },
 `
 
@@ -128,6 +220,7 @@ if (close === -1) fail(`分类数组 ${arrayName} 没有正常闭合`)
 const next = `${source.slice(0, close + 1)}${entry}${source.slice(close + 1)}`
 writeFileSync(FILE, next, "utf8")
 
+report("added", { id, title, url, category, icon: icon.url, iconKind: icon.kind })
 console.log(`::notice::已把「${title}」加到「${category}」（id=${id}）`)
 console.log(`SITE_TITLE=${title}`)
 console.log(`SITE_URL=${url}`)

@@ -3,12 +3,13 @@ name: Site request → PR
 # 把「补充站点」Issue 变成一个只改 src/data/sites.ts 的 PR。
 # 维护者 Approve 后由 auto-merge.yml 合入，deploy.yml 随后重新发布。
 #
-# 三种触发：
-#   issues            Issue 新建、编辑、重开、打标签
-#   workflow_dispatch 手动指定一个 Issue 重跑（site-refresh.yml 也走这条）
+# 触发：
+#   issues opened/edited/reopened/labeled  正常处理
+#   issues closed                          Issue 关了，把对应 PR 一起关掉
+#   workflow_dispatch                      手动指定 Issue 重跑（site-refresh.yml 也走这条）
 on:
   issues:
-    types: [opened, edited, reopened, labeled]
+    types: [opened, edited, reopened, labeled, closed]
   workflow_dispatch:
     inputs:
       issue:
@@ -23,19 +24,40 @@ permissions:
   statuses: write
 
 concurrency:
-  # 事件触发时用事件里的编号，手动触发时用输入。
   group: site-request-${{ github.event.issue.number || inputs.issue }}
   cancel-in-progress: true
 
 jobs:
+  # Issue 被关掉时，别让对应分支和 PR 挂在那里。
+  withdraw:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close the pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: site/issue-${{ github.event.issue.number }}
+        run: |
+          PR=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open \
+            --json number --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            echo "没有对应的 PR"
+            exit 0
+          fi
+          gh pr close "$PR" --repo "$GITHUB_REPOSITORY" --delete-branch \
+            --comment "来源 Issue 已关闭，这个 PR 一并关掉。"
+
   propose:
     # 两个条件满足其一就处理：带 site-request 标签，或者标题以 [Site] 开头。
     # 后者是兜底：模板里写的 labels 只有在仓库已存在同名标签时才生效，
     # 标签缺失时 Issue 会静默地不带标签，只认标签就永远跑不起来。
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.issue.labels.*.name, 'site-request') ||
-      startsWith(github.event.issue.title, '[Site]')
+      github.event.action != 'closed' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        contains(github.event.issue.labels.*.name, 'site-request') ||
+        startsWith(github.event.issue.title, '[Site]')
+      )
     runs-on: ubuntu-latest
     steps:
       # 永远从最新的 main 出发。分支上只留「main + 这一个站点」的改动，
@@ -76,19 +98,50 @@ jobs:
           echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
           echo "title=$(cat "$RUNNER_TEMP/title.txt")" >> "$GITHUB_OUTPUT"
 
+      # 脚本会顺带探测图标：拿不到可用的图片就退出非零，PR 不会生成。
       - name: Apply issue to src/data/sites.ts
         env:
           ISSUE_BODY_FILE: ${{ runner.temp }}/body.txt
+          RESULT_FILE: ${{ runner.temp }}/site-result.json
         run: |
           ISSUE_BODY="$(cat "$ISSUE_BODY_FILE")" node scripts/add-site.mjs
 
+      - name: Read the result
+        id: result
+        env:
+          RESULT_FILE: ${{ runner.temp }}/site-result.json
+        run: |
+          STATUS=$(jq -r '.status // "unknown"' "$RESULT_FILE")
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "icon=$(jq -r '.icon // ""' "$RESULT_FILE")" >> "$GITHUB_OUTPUT"
+
+      # 地址已经在清单里：说明这个站点已经上线了，PR 没有存在意义。
+      - name: Report the duplicate and stop
+        if: steps.result.outputs.status == 'duplicate'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ steps.issue.outputs.number }}
+          BRANCH: site/issue-${{ steps.issue.outputs.number }}
+        run: |
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body \
+            "这个地址已经在清单里了，不需要重复添加。如果是要改分类或说明，直接提 PR 改 \`src/data/sites.ts\`。"
+          PR=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$PR" ]; then
+            gh pr close "$PR" --repo "$GITHUB_REPOSITORY" --delete-branch \
+              --comment "地址已经在清单里，关闭这个 PR。"
+          fi
+          gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" --reason "not planned"
+
       - name: Build the result
+        if: steps.result.outputs.status == 'added'
         run: |
           npm ci
           npm run build
 
       - name: Open or update the pull request
         id: pr
+        if: steps.result.outputs.status == 'added'
         # 组织默认禁止 Actions 创建 PR，这一步可能失败。失败时下面的兜底步骤
         # 会把分支链接发到 Issue 里，不至于让人对着一个红叉猜。
         continue-on-error: true
@@ -110,9 +163,10 @@ jobs:
             由 #${{ steps.issue.outputs.number }} 自动生成，只改动 `src/data/sites.ts`。
 
             - 站点：${{ steps.issue.outputs.title }}
+            - 图标：${{ steps.result.outputs.icon }}（已探测可访问）
             - 分类与地址来自 Issue 表单，解析结果见上一步日志
 
-            **审核要点**：分类是否合适、地址是否可访问、是否是推广或镜像站。
+            **审核要点**：分类是否合适、地址是否可访问、图标在网格里是否清晰。
             Approve 后会自动合入并触发部署；要改内容请直接编辑 Issue，PR 会跟着更新。
 
       # 机器人生成的 PR 不会触发 pull_request，CI 不会自己跑，分支保护就一直拦着。
@@ -142,7 +196,7 @@ jobs:
 
       # 分支已经推上去了，只是 PR 没建成。把一键创建链接贴回 Issue。
       - name: Fall back to a compare link
-        if: steps.pr.outputs.pull-request-number == ''
+        if: steps.result.outputs.status == 'added' && steps.pr.outputs.pull-request-number == ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ steps.issue.outputs.number }}
@@ -155,3 +209,24 @@ jobs:
             "$LINK")
           gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "$BODY"
           echo "::error::PR 未创建，分支 $BRANCH 已推送，链接已发到 Issue"
+
+      # 任何一步挂了都把原因贴回 Issue，别让人对着一个红叉猜。
+      - name: Report the failure on the issue
+        if: failure() && steps.issue.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ steps.issue.outputs.number }}
+          RESULT_FILE: ${{ runner.temp }}/site-result.json
+        run: |
+          if [ -f "$RESULT_FILE" ]; then
+            REASON=$(jq -r '.message // ""' "$RESULT_FILE")
+          fi
+          if [ -z "${REASON:-}" ]; then
+            REASON="构建或推送阶段失败，细节见 [这次运行的日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})。"
+          fi
+          {
+            printf '自动处理没有通过，这个 PR 不会生成。\n\n'
+            printf '%s\n\n' "$REASON"
+            printf '改完 Issue 内容会重新触发。\n'
+          } > "$RUNNER_TEMP/reason.md"
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/reason.md"

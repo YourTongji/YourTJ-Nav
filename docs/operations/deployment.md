@@ -104,8 +104,10 @@ deploy.yml 重新构建并发布
 - 幂等。`scripts/add-site.mjs` 先扫一遍现有地址，已经存在就跳过。编辑 Issue 会更新同一个分支，
   不会开出第二个 PR。
 - 人工 PR 不受影响。`auto-merge.yml` 只处理带 `site-request` 标签、并且 head 在本仓库的 PR。
-- 图标。表单留空时自动取 `https://<域名>/favicon.ico`。要自托管图标仍然走人工 PR，
-  把文件放进 `public/brand/`，再用 `asset()` 引用。
+- 图标。表单留空时按 `/favicon.ico`、`/favicon.png`、`/apple-touch-icon.png` 的顺序试，
+  三个都拿不到就**直接失败，不生成 PR**。判断依据是文件头而不是 `Content-Type`：
+  403 页面也会返回 200，只有魔数能说明它到底是不是图片。
+- 要自托管图标仍然走人工 PR，把文件放进 `public/brand/`，再用 `asset()` 引用。
 - 分支永远从最新 `main` 重建。工作流先 `checkout ref: main`，再往工作区写这一条站点，
   所以分支内容是「main + 一个站点」，不会随着别人的合入越拖越远。
 
@@ -125,6 +127,19 @@ deploy.yml 重新构建并发布
 
 分支重建会强推，仓库开了 `dismiss_stale_reviews`，所以刷新过的 PR 需要重新 Approve
 一次——内容是从 Issue 文本重新生成的，不会夹带别的改动，但批过的东西被重写就该再看一眼。
+
+### 失败与退场
+
+机器人的每一步都会把结果落回 Issue，不让人对着红叉猜：
+
+| 情况 | 处理 |
+|---|---|
+| 分类不在允许列表 | 失败，Issue 里留言写明允许的分类 |
+| 地址解析不了 | 失败，留言写明原始值 |
+| 图标全部探测失败 | 失败，留言列出试过哪些地址、各自报了什么错 |
+| 地址已经在清单里 | 留言说明，关掉多余 PR，Issue 标 `not planned` 关闭 |
+| Issue 被关闭 | 对应的 `site/issue-<n>` 分支和 PR 一并关掉 |
+| 构建或推送失败 | 失败，留言附本次运行日志链接 |
 
 要重跑某条 Issue，在 Actions 里选 Site request → PR 再 Run workflow 并填 Issue 编号，
 或者改一下 Issue 的标签。
