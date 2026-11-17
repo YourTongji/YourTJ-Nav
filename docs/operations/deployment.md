@@ -104,9 +104,16 @@ deploy.yml 重新构建并发布
 - 幂等。`scripts/add-site.mjs` 先扫一遍现有地址，已经存在就跳过。编辑 Issue 会更新同一个分支，
   不会开出第二个 PR。
 - 人工 PR 不受影响。`auto-merge.yml` 只处理带 `site-request` 标签、并且 head 在本仓库的 PR。
-- 图标。表单留空时按 `/favicon.ico`、`/favicon.png`、`/apple-touch-icon.png` 的顺序试，
-  三个都拿不到就**直接失败，不生成 PR**。判断依据是文件头而不是 `Content-Type`：
+- 图标。先看域名对不对得上 `reicon-brands`：对得上就用本地品牌图标（`brand()`），
+  不发任何请求。对不上才按 `/favicon.ico`、`/favicon.png`、`/apple-touch-icon.png`
+  的顺序试，三个都拿不到就**直接失败，不生成 PR**。
+
+  品牌识别只看可注册域名（`ieeexplore.ieee.org` 取 `ieee`，`mail.google.com` 取 `google`），
+  避免子域名撞上无关图标。判断远端图标用的是文件头而不是 `Content-Type`：
   403 页面也会返回 200，只有魔数能说明它到底是不是图片。
+
+  远端图标还有一个测不出来的问题：域名被 DNS 污染时，GitHub 的机器（美国）能访问，
+  国内用户打不开，图标就是空白。所以能命中品牌就别用远端 favicon。
 - 要自托管图标仍然走人工 PR，把文件放进 `public/brand/`，再用 `asset()` 引用。
 - 分支永远从最新 `main` 重建。工作流先 `checkout ref: main`，再往工作区写这一条站点，
   所以分支内容是「main + 一个站点」，不会随着别人的合入越拖越远。

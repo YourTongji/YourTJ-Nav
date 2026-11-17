@@ -86,13 +86,19 @@ jobs:
             exit 0
           fi
 
-          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
-            --body "已合入：$PR_URL。站点会在下一次部署后生效。"
+          # 链接写成 markdown 形式并单独成行：裸 URL 后面紧跟中文标点时，
+          # GitHub 会把标点也算进链接里，整段变成一块蓝色。
+          {
+            printf '已合入 [#%s](%s)。\n\n' "${{ github.event.pull_request.number }}" "$PR_URL"
+            printf '部署会自动跑，一两分钟后线上就能看到。\n'
+          } > "$RUNNER_TEMP/merged.md"
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/merged.md"
 
           STATE=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
           if [ "$STATE" = "OPEN" ]; then
             gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" \
-              --reason completed --comment "已合入 #${{ github.event.pull_request.number }}，自动关闭。"
+              --reason completed \
+              --comment "已合入 [#${{ github.event.pull_request.number }}]($PR_URL)，自动关闭。"
           fi
 
       # 这次合入是 GITHUB_TOKEN 做的，push 事件不会再触发其他工作流。

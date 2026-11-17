@@ -71,6 +71,11 @@ jobs:
         with:
           node-version: 22
 
+      # 脚本要靠 node_modules/reicon-brands 判断域名有没有对应品牌图标，
+      # 所以依赖要在解析 Issue 之前装好。
+      - name: Install dependencies
+        run: npm ci
+
       - name: Ensure labels exist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -114,6 +119,7 @@ jobs:
           STATUS=$(jq -r '.status // "unknown"' "$RESULT_FILE")
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
           echo "icon=$(jq -r '.icon // ""' "$RESULT_FILE")" >> "$GITHUB_OUTPUT"
+          echo "icon_label=$(jq -r '.iconLabel // ""' "$RESULT_FILE")" >> "$GITHUB_OUTPUT"
 
       # 地址已经在清单里：说明这个站点已经上线了，PR 没有存在意义。
       - name: Report the duplicate and stop
@@ -135,9 +141,7 @@ jobs:
 
       - name: Build the result
         if: steps.result.outputs.status == 'added'
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
 
       - name: Open or update the pull request
         id: pr
@@ -163,7 +167,7 @@ jobs:
             由 #${{ steps.issue.outputs.number }} 自动生成，只改动 `src/data/sites.ts`。
 
             - 站点：${{ steps.issue.outputs.title }}
-            - 图标：${{ steps.result.outputs.icon }}（已探测可访问）
+            - 图标：${{ steps.result.outputs.icon_label }}
             - 分类与地址来自 Issue 表单，解析结果见上一步日志
 
             **审核要点**：分类是否合适、地址是否可访问、图标在网格里是否清晰。

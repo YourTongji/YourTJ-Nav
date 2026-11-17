@@ -7,7 +7,7 @@
  * Idempotent: an address already in the file is skipped, so re-running the
  * workflow on an edited issue never duplicates a site.
  */
-import { readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 
 /*
  * 结果写到 RESULT_FILE，工作流读它决定下一步：
@@ -117,6 +117,40 @@ async function fetchIcon(url) {
 }
 
 /**
+ * 域名对得上 reicon-brands 里的图标就直接用本地的，不发任何请求。
+ *
+ * 只看可注册域名的最后一段：ieeexplore.ieee.org 取 ieee，mail.google.com 取 google。
+ * 这样不会因为子域名撞上无关的图标（比如 iced.example.com 不会命中 Iced）。
+ */
+function brandFor(host) {
+  const dir = "node_modules/reicon-brands/icons"
+  if (!existsSync(dir)) return null
+
+  const available = new Map(
+    readdirSync(dir)
+      .filter((file) => file.endsWith(".js"))
+      .map((file) => [file.slice(0, -3).toLowerCase(), file.slice(0, -3)]),
+  )
+
+  const labels = host.replace(/^www\./, "").split(".")
+  if (labels.length < 2) return null
+  const registrable = labels[labels.length - 2].replace(/[^a-z0-9]/g, "")
+  return available.get(registrable) ?? null
+}
+
+/** 把品牌图标加进 sites.ts 顶部那行 import，保持字母序。 */
+function withBrandImport(source, name) {
+  const pattern = /import \{ ([^}]+) \} from "reicon-brands"/
+  const match = source.match(pattern)
+  if (!match) return source
+  const names = match[1].split(",").map((item) => item.trim())
+  if (names.includes(name)) return source
+  names.push(name)
+  names.sort((a, b) => a.localeCompare(b))
+  return source.replace(pattern, `import { ${names.join(", ")} } from "reicon-brands"`)
+}
+
+/**
  * 表单留空时按常见路径挨个试。全失败就报错——宁可让人补一个图标地址，
  * 也不要合进去一条没有图标的站点。
  */
@@ -191,23 +225,29 @@ if (existing.has(key)) {
   process.exit(0)
 }
 
-// 图标探测放在这里：地址和分类都过了，只差确认图标拿得到。
-let icon
-try {
-  icon = await probeIcon(iconCandidate, host)
-} catch (error) {
-  fail(error.message)
+// 图标：域名对得上 reicon-brands 就用本地品牌图标，否则才去抓远端。
+const brandName = brandFor(host)
+let icon = null
+if (brandName && !iconCandidate) {
+  console.log(`::notice::${host} 对应 reicon-brands 里的 ${brandName}，用本地品牌图标`)
+} else {
+  try {
+    icon = await probeIcon(iconCandidate, host)
+  } catch (error) {
+    fail(error.message)
+  }
 }
 
 let id = slugify(title, url)
 if (source.includes(`id: "${id}"`)) id = `${id}-${Date.now().toString(36).slice(-4)}`
 
+const mark = icon ? `logo("${quote(icon.url)}", "light")` : `brand(${brandName})`
 const entry = `  {
     id: "${id}",
     title: "${quote(title)}",
     description: "${quote(description)}",
     url: "${quote(url)}",
-    mark: logo("${quote(icon.url)}", "light"),
+    mark: ${mark},
   },
 `
 
@@ -217,10 +257,16 @@ if (start === -1) fail(`找不到分类数组 ${arrayName}`)
 const close = source.indexOf("\n]", start)
 if (close === -1) fail(`分类数组 ${arrayName} 没有正常闭合`)
 
-const next = `${source.slice(0, close + 1)}${entry}${source.slice(close + 1)}`
+let next = `${source.slice(0, close + 1)}${entry}${source.slice(close + 1)}`
+if (!icon && brandName) next = withBrandImport(next, brandName)
 writeFileSync(FILE, next, "utf8")
 
-report("added", { id, title, url, category, icon: icon.url, iconKind: icon.kind })
+// 给 PR 正文用的描述：远端图标是裸 URL 时后面接中文会被当成链接的一部分，
+// 统一包进反引号，顺便把品牌图标说清楚。
+const iconLabel = icon
+  ? `\`${icon.url}\`（已探测可访问）`
+  : `本地品牌图标 \`${brandName}\`（reicon-brands）`
+report("added", { id, title, url, category, icon: icon ? icon.url : `brand:${brandName}`, iconKind: icon ? icon.kind : "reicon-brands", iconLabel })
 console.log(`::notice::已把「${title}」加到「${category}」（id=${id}）`)
 console.log(`SITE_TITLE=${title}`)
 console.log(`SITE_URL=${url}`)
