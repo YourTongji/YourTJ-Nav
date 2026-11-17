@@ -509,6 +509,42 @@
 }
 
 /*
+  The copy chip inside a feedback tooltip. Small on purpose: it sits on the same
+  line as the address it copies, and the tooltip is already the smallest surface
+  in the page.
+*/
+.feedback-copy {
+  color: var(--ink-muted);
+  transition:
+    color 150ms var(--ease-out-soft),
+    background-color 150ms var(--ease-out-soft);
+}
+
+.feedback-copy:hover {
+  color: var(--ink);
+  background-color: oklch(0 0 0 / 0.07);
+}
+
+.feedback-copy:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+/* 键盘打开卡片时才出现：Tab 被菜单圈住，进不到复制按钮，改用 C 键。 */
+.feedback-key {
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding-inline: 3px;
+  border-radius: 5px;
+  border: 1px solid var(--hairline);
+  color: var(--ink-muted);
+  font-size: 10px;
+  line-height: 1;
+}
+
+/*
   Popover items sit below their trigger, not above it: 32 next to a 40px corner
   button reads as "this belongs to that button", 48 reads as "this is the
   primary control". Coarse pointers get the same bump the corner buttons get.
