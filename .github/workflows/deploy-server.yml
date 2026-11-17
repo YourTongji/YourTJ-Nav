@@ -15,6 +15,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # 配置好 secrets 后在 Settings → Variables 设 SERVER_DEPLOY_ENABLED=true 启用；
+    # 未启用时跳过而非失败。
+    if: ${{ vars.SERVER_DEPLOY_ENABLED == 'true' }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -33,13 +37,15 @@ jobs:
 
       - name: Prepare SSH
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -T 10 -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          # 指纹固定：来自服务器 /etc/ssh/ssh_host_ed25519_key.pub，不做 keyscan。
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Upload dist
         env:
@@ -57,20 +63,23 @@ jobs:
           set -euo pipefail
           BASE=/var/www/yourtj-nav
           REL="$BASE/${1:0:12}"
+          # 同 SHA 重跑时先清空，避免上一次解压的多余文件残留。
+          rm -rf "$REL"
           mkdir -p "$REL"
           tar -xzf /tmp/yourtj-dist.tgz -C "$REL"
-          rm /tmp/yourtj-dist.tgz
           test -f "$REL/index.html"
+          rm /tmp/yourtj-dist.tgz
           PREV="$(readlink -f "$BASE/current" || true)"
           ln -sfn "$REL" "$BASE/current.new"
           mv -T "$BASE/current.new" "$BASE/current"
-          # 失败即回滚。
-          if ! curl -sf -o /dev/null --resolve n.yourtj.de:443:127.0.0.1 https://n.yourtj.de/; then
+          # 严格 200 才算健康（-f 会放过 3xx），失败即回滚。
+          code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 --resolve n.yourtj.de:443:127.0.0.1 https://n.yourtj.de/)"
+          if [ "$code" != "200" ]; then
             if [ -n "$PREV" ]; then
               ln -sfn "$PREV" "$BASE/current.new"
               mv -T "$BASE/current.new" "$BASE/current"
             fi
-            echo "health check failed, rolled back to $PREV" >&2
+            echo "health check failed (http=$code), rolled back to $PREV" >&2
             exit 1
           fi
           cd "$BASE"
