@@ -8,7 +8,6 @@ on:
 permissions:
   contents: read
 
-# 同一时间只跑一个服务器部署，不取消进行中的——半路取消会留下不完整的版本目录。
 concurrency:
   group: server-deploy
   cancel-in-progress: false
@@ -49,8 +48,7 @@ jobs:
           tar -czf /tmp/yourtj-dist.tgz -C dist .
           scp -i ~/.ssh/id_deploy /tmp/yourtj-dist.tgz yourtj-nav@"$DEPLOY_HOST":/tmp/yourtj-dist.tgz
 
-      # 原子切换：新版本目录就绪并自检通过后才替换 current 符号链接；
-      # 自检失败自动切回上一版。保留最近 3 个版本目录用于回滚。
+      # 原子切换。自检失败自动切回上一版。保留最近 3 个版本目录用于回滚。
       - name: Atomic switch
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -66,10 +64,8 @@ jobs:
           PREV="$(readlink -f "$BASE/current" || true)"
           ln -sfn "$REL" "$BASE/current.new"
           mv -T "$BASE/current.new" "$BASE/current"
-          # 探活走真实用户路径：443 → Xray 回落 → nginx，严格校验证书。
-          # 任一域名失败即回滚，证书续期失败也能在此兜住。
-          if ! curl -sf -o /dev/null --resolve nav.jkljkluiouio.top:443:127.0.0.1 https://nav.jkljkluiouio.top/ \
-             || ! curl -sf -o /dev/null --resolve n.yourtj.de:443:127.0.0.1 https://n.yourtj.de/; then
+          # 失败即回滚。
+          if ! curl -sf -o /dev/null --resolve n.yourtj.de:443:127.0.0.1 https://n.yourtj.de/; then
             if [ -n "$PREV" ]; then
               ln -sfn "$PREV" "$BASE/current.new"
               mv -T "$BASE/current.new" "$BASE/current"
@@ -78,8 +74,7 @@ jobs:
             exit 1
           fi
           cd "$BASE"
-          # 只清理 12 位提交哈希命名的版本目录，且永不删除当前在用版本，
-          # 避免演练/手工目录挤占名额导致回滚备份被误删。
+          # 只清理 12 位提交哈希命名的版本目录，且永不删除当前在用版本。
           CUR="$(basename "$(readlink current)")"
           ls -1t | grep -E '^[0-9a-f]{12}$' | grep -vxF "$CUR" | tail -n +3 | xargs -r rm -rf --
           echo "deployed $REL"
