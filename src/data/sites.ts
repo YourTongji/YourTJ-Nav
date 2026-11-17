@@ -3,7 +3,7 @@ import type { BrandIconFn } from "reicon-brands"
 /** Public assets live under the deploy base, which is not always "/". */
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`
 
-import { Arxiv, Autodesk, Github, Ieee, Origin, Photopea } from "reicon-brands"
+import { Arxiv, Autodesk, Github, Huggingface, Ieee, Origin, Photopea } from "reicon-brands"
 import type { IconComponent } from "reicon-react"
 import {
   AwardCertificate,
@@ -392,7 +392,7 @@ const ai: Site[] = [
     title: "Hugging Face",
     description: "开源模型与数据集的集散地",
     url: "https://huggingface.co",
-    mark: logo("https://huggingface.co/favicon.ico", "light"),
+    mark: brand(Huggingface),
   },
 ]
 
