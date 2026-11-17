@@ -67,6 +67,13 @@ export default function App() {
   const [quoteVisible, , setQuoteVisible] = useBoolPref("yourtj-nav-quote", true)
   const [catVisible, , setCatVisible] = useBoolPref("yourtj-nav-cat", true)
   const [catSpot, setCatSpot] = useNumberPref("yourtj-nav-cat-spot", 0, 0, 1)
+  // 从右键菜单叫回来时指定破壳位置；普通开关走随机。
+  const [catHatchAt, setCatHatchAt] = useState<number | null>(null)
+
+  // 不管是哪条路径把猫藏起来的，位置指令都该失效，下次显示回到随机。
+  useEffect(() => {
+    if (!catVisible) setCatHatchAt(null)
+  }, [catVisible])
   const clock = useClockPrefs()
   const [searchWidth, setSearchWidth] = useNumberPref("yourtj-nav-search-width", 608, 420, 900)
   const [material, setMaterial] = useEnumPref<MaterialId>(
@@ -204,11 +211,37 @@ export default function App() {
 
           {minimal ? null : (
             <section ref={heroRef} className="pb-7 pt-[clamp(1.25rem,6vh,4rem)] sm:pb-11">
-              <Collapse open={clock.prefs.visible}>
-                <div className="mb-5">
-                  <Clock prefs={clock.prefs} />
-                </div>
-              </Collapse>
+              <div className="relative">
+                <Collapse open={clock.prefs.visible}>
+                  <div className="mb-5">
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <div>
+                          <Clock prefs={clock.prefs} />
+                        </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onSelect={() => clock.update({ visible: false })}>
+                          隐藏时钟
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  </div>
+                </Collapse>
+                {/* 藏起来之后不占地方，右键区浮在上面那段留白里。 */}
+                {clock.prefs.visible ? null : (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div className="clock-slot" aria-hidden="true" />
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onSelect={() => clock.update({ visible: true })}>
+                        显示时钟
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                )}
+              </div>
               {/* Above the pins and the grid: the suggestion list drops over them. */}
               <div ref={heroSearchRef} className="hero-search relative z-30">
                 <SearchBar
@@ -218,9 +251,20 @@ export default function App() {
                   source={suggestSource}
                   onVisit={visit}
                   cat={catVisible}
-                  onHideCat={() => setCatVisible(false)}
+                  onHideCat={() => {
+                    setCatHatchAt(null)
+                    setCatVisible(false)
+                  }}
                   catSpot={catSpot}
                   onCatSpot={setCatSpot}
+                  onShowCat={(spot) => {
+                    setCatSpot(spot)
+                    setCatHatchAt(spot)
+                    setCatVisible(true)
+                  }}
+                  catHatchAt={catHatchAt}
+                  clockVisible={clock.prefs.visible}
+                  onShowClock={() => clock.update({ visible: true })}
                 />
               </div>
               <PinnedBar
@@ -231,11 +275,23 @@ export default function App() {
                 onPin={pins.add}
                 onOpenPicker={() => setPickerOpen(true)}
               />
-              <Collapse open={quoteVisible}>
-                <div className="mt-4 sm:mt-5">
-                  <Hitokoto />
-                </div>
-              </Collapse>
+              <div className="relative">
+                <Collapse open={quoteVisible}>
+                  <div className="mt-4 sm:mt-5">
+                    <Hitokoto onHide={() => setQuoteVisible(false)} />
+                  </div>
+                </Collapse>
+                {quoteVisible ? null : (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div className="quote-slot" aria-hidden="true" />
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onSelect={() => setQuoteVisible(true)}>显示一言</ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                )}
+              </div>
             </section>
           )}
 

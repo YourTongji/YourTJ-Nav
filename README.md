@@ -99,7 +99,8 @@ src/
 public/
   brand/             站点图标，全部本地
   fonts/             Geist、霞鹜文楷分片、Instrument Serif
-  cat.webp           搜索栏上的猫
+  cat.webp           搜索栏上的猫（趴着）
+  cat-typing.webp    敲键盘时的那只（第一次输入才加载）
 docs/                产品、设计、架构、开发与部署文档
 ```
 

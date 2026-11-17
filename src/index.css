@@ -348,6 +348,41 @@
   user-select: none;
 }
 
+/*
+  The empty strip above the pill where the cat lives. It only exists while the
+  cat or the quote is hidden, so it never intercepts a right-click on a page
+  that has nothing to bring back.
+*/
+/*
+  时钟和一言藏起来之后，各自在原位留一条右键区。高度按它们平时的样子给，
+  够点中就行——不留的话这两块地方就没有东西能右键了。
+*/
+/* 都往上长，落在元素原来占的那段留白里：不占版面，也不压到下面的内容。 */
+.clock-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 40px;
+}
+
+.quote-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 24px;
+}
+
+.search-cat-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 1px);
+  height: 48px;
+  z-index: 2;
+}
+
 /* Picked up: a little off the rim, leaning into the pull (SearchCat.tsx). */
 .search-cat[data-drag="true"] {
   cursor: grabbing;
@@ -371,6 +406,47 @@
   pointer-events: none;
   -webkit-user-drag: none;
   filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.22));
+  transition: opacity 180ms var(--ease-out-soft);
+}
+
+/*
+  Typing: the cat sits up behind a little keyboard. It is taller than the lying
+  pose, so it is anchored to the same rim and allowed to grow upward — the two
+  layers share a bottom edge, which is what makes the swap read as one animal
+  changing pose rather than two images cross-fading.
+*/
+.search-cat-typing {
+  position: absolute;
+  /* 以趴姿的中心为准居中：宽度小了 14px，靠左对齐会偏到一边去。 */
+  left: calc((100% - var(--cat-width) * 0.8276) / 2);
+  /* 键盘底边压进搜索框上沿 3px：不压的话它悬在边上方，像贴上去的。 */
+  bottom: -10px;
+  /* 站起来的猫本来就比趴着高，缩到 0.83 才和趴姿的体量对得上。 */
+  width: calc(var(--cat-width) * 0.8276);
+  height: auto;
+  opacity: 0;
+  transform: translateY(5px) scale(0.96);
+  transform-origin: 50% 100%;
+  transition:
+    opacity 170ms var(--ease-out-soft),
+    transform 240ms var(--ease-spring);
+}
+
+.search-cat[data-typing="true"] .search-cat-typing {
+  opacity: 1;
+  transform: none;
+}
+
+.search-cat[data-typing="true"] .search-cat-rest {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-cat-img,
+  .search-cat-typing {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* Squash, leap, land, settle — an easter egg that never fights the loop. */
@@ -1077,6 +1153,11 @@ html[data-transition="theme"]::view-transition-new(root) {
 
   --ease-out-soft: cubic-bezier(0.22, 0.8, 0.3, 1);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  /*
+    高度收放专用。spring 前段太快——95px 的区块第一帧就跳掉 37px，然后慢慢蹭完，
+    看着是「猛地一抽再爬」。这条进出对称，起手是缓的。
+  */
+  --ease-collapse: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer base {

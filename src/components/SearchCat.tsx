@@ -17,6 +17,9 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 
+/** 换 cat-typing.webp 的内容时 +1，否则浏览器会继续用缓存里的旧图。 */
+const TYPING_ASSET_VERSION = "3"
+
 /** An animated decoration should hold still when the system asks for calm. */
 function usePrefersReducedMotion() {
   const [calm, setCalm] = useState(() =>
@@ -110,6 +113,8 @@ function randomFree(rim: Rim) {
  */
 export function SearchCat({
   visible,
+  typing,
+  hatchAt = null,
   onHide,
   spot,
   onSpot,
@@ -117,6 +122,10 @@ export function SearchCat({
   fieldRef,
 }: {
   visible: boolean
+  /** Someone is typing in the field: the cat sits up and types along. */
+  typing: boolean
+  /** 从右键菜单叫回来时指定的破壳位置，0 到 1；不传就随机挑一个空位。 */
+  hatchAt?: number | null
   onHide: () => void
   /** Where along the rim it sits, 0 to 1; remembered, so it stays where it was put. */
   spot: number
@@ -128,6 +137,10 @@ export function SearchCat({
 }) {
   const calm = usePrefersReducedMotion()
   const [present, setPresent] = useState(visible)
+  // Loaded on the first keystroke, not with the page: it is the bigger of the two.
+  const [typingSrc, setTypingSrc] = useState<string | null>(null)
+  // 图还没解码完就切过去，静止那张已经淡出、新的还没画出来，会闪一下空白。
+  const [typingReady, setTypingReady] = useState(false)
   const [phase, setPhase] = useState<Phase>("rest")
   const [hopping, setHopping] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -135,6 +148,11 @@ export function SearchCat({
   const eggRef = useRef<HTMLSpanElement>(null)
   const settled = useRef(visible)
   const spotRef = useRef(spot)
+  // 用 ref 读，避免把 hatchAt 放进动画 effect 的依赖里，那会重启破壳动画。
+  const hatchAtRef = useRef<number | null>(hatchAt)
+  useLayoutEffect(() => {
+    hatchAtRef.current = hatchAt
+  }, [hatchAt])
   const drag = useRef<{
     pointer: number
     startX: number
@@ -148,6 +166,13 @@ export function SearchCat({
   const dragged = useRef(false)
   const hiding = useRef(false)
   const fromKeyboard = useRef(false)
+
+  // 第一次敲键盘才去取：它比静止那张大，不该占首屏。
+  // 文件名不变时浏览器会一直用缓存里的旧图，换素材就把版本号 +1。
+  useEffect(() => {
+    if (!typing || calm || typingSrc) return
+    setTypingSrc(`${import.meta.env.BASE_URL}cat-typing.webp?v=${TYPING_ASSET_VERSION}`)
+  }, [typing, calm, typingSrc])
 
   // Follows the switch, not mounting: a page load shows the cat as it already is.
   useEffect(() => {
@@ -215,7 +240,7 @@ export function SearchCat({
         .catch(() => {})
     } else {
       // Chosen here, once the cat is laid out, so the rim and the clock can be measured.
-      const next = shell ? randomFree(measureRim(button, shell)) : 0
+      const next = hatchAtRef.current ?? (shell ? randomFree(measureRim(button, shell)) : 0)
       spotRef.current = next
       button.style.setProperty("--cat-spot", String(next))
       onSpot(next)
@@ -407,6 +432,7 @@ export function SearchCat({
           data-hop={hopping ? "true" : undefined}
           aria-keyshortcuts="ArrowLeft ArrowRight"
           data-phase={phase === "rest" ? undefined : phase}
+          data-typing={typing && typingReady && phase === "rest" ? "true" : undefined}
           style={{ "--cat-spot": spot } as CSSProperties}
           onClick={hop}
           onPointerDown={onPointerDown}
@@ -434,8 +460,19 @@ export function SearchCat({
             aria-hidden="true"
             draggable={false}
             decoding="async"
-            className="search-cat-img"
+            className="search-cat-img search-cat-rest"
           />
+          {typingSrc ? (
+            <img
+              src={typingSrc}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              decoding="async"
+              onLoad={() => setTypingReady(true)}
+              className="search-cat-img search-cat-typing"
+            />
+          ) : null}
         </button>
       </ContextMenuTrigger>
       <ContextMenuContent
