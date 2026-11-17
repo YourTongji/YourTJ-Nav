@@ -49,7 +49,7 @@ Settings → Secrets and variables → Actions：
 |---|---|---|
 | `DEPLOY_HOST` | Secret | 服务器公网 IPv4 |
 | `DEPLOY_SSH_KEY` | Secret | 专用部署私钥（ed25519，登录无 sudo 的 `yourtj-nav` 用户） |
-| `DEPLOY_KNOWN_HOSTS` | Secret | 服务器主机公钥行，取自 `/etc/ssh/ssh_host_ed25519_key.pub`，前面加主机地址；固定指纹，不做 keyscan |
+| `DEPLOY_KNOWN_HOSTS` | Secret | 服务器主机公钥行：`<主机> ssh-ed25519 AAAA…`。前半截必须和 `DEPLOY_HOST` 完全一致（是 IP 就写 IP，不是域名），否则 ssh 匹配不上；公钥取自 `/etc/ssh/ssh_host_ed25519_key.pub`。固定指纹，不做 keyscan |
 | `SERVER_DEPLOY_ENABLED` | Variable | `true` 时启用；未设置时工作流跳过而非失败 |
 
 服务器侧前提：`yourtj-nav` 用户可密钥登录，`/var/www/yourtj-nav/` 归其所有，
@@ -63,9 +63,13 @@ nginx root 指向 `current` 符号链接（`disable_symlinks off`）。
   current →    指向在用版本的符号链接
 ```
 
-新版本解压到独立目录并校验 `index.html` 后，用 `mv -T` 原子替换 `current`；
-随后经 443 全链路探活（严格 200），失败自动切回上一版并以非零码退出。
-保留最近 3 个版本目录（当前版 + 2 个旧版），只清理提交哈希命名的目录。
+新版本先解压到 `.staging-<sha12>/`，校验 `index.html` 存在后才落到版本目录，
+所以包损坏或解压失败碰不到任何在用的版本。随后用 `mv -T` 原子替换 `current`，
+再经 443 全链路探活（严格 200），失败自动切回上一版并以非零码退出。
+
+同一个 commit 重复触发时会直接跳过，不会删掉正在服务的目录。
+保留最近 3 个版本目录（当前版 + 2 个旧版），只清理提交哈希命名的目录；
+目录的 mtime 在切换时会被盖成部署时间，清理顺序才稳定。
 
 ### 回滚
 
