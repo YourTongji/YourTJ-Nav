@@ -69,6 +69,11 @@ export default function App() {
   const [catSpot, setCatSpot] = useNumberPref("yourtj-nav-cat-spot", 0, 0, 1)
   // 从右键菜单叫回来时指定破壳位置；普通开关走随机。
   const [catHatchAt, setCatHatchAt] = useState<number | null>(null)
+
+  // 不管是哪条路径把猫藏起来的，位置指令都该失效，下次显示回到随机。
+  useEffect(() => {
+    if (!catVisible) setCatHatchAt(null)
+  }, [catVisible])
   const clock = useClockPrefs()
   const [searchWidth, setSearchWidth] = useNumberPref("yourtj-nav-search-width", 608, 420, 900)
   const [material, setMaterial] = useEnumPref<MaterialId>(
@@ -258,6 +263,8 @@ export default function App() {
                     setCatVisible(true)
                   }}
                   catHatchAt={catHatchAt}
+                  clockVisible={clock.prefs.visible}
+                  onShowClock={() => clock.update({ visible: true })}
                 />
               </div>
               <PinnedBar

@@ -72,6 +72,9 @@ type SearchBarProps = {
   onShowCat?: (spot: number) => void
   /** 从右键菜单叫回来时指定的破壳位置；不传就随机挑。 */
   catHatchAt?: number | null
+  /** 时钟藏着的时候，上沿这块右键区也能把它叫回来——两块的区域会重叠。 */
+  clockVisible?: boolean
+  onShowClock?: () => void
 }
 
 export function SearchBar({
@@ -87,6 +90,8 @@ export function SearchBar({
   onCatSpot,
   onShowCat,
   catHatchAt = null,
+  clockVisible = true,
+  onShowClock,
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   // 猫或一言藏起来时，搜索框上方留一条右键区，把它们叫回来。
@@ -302,7 +307,7 @@ export function SearchBar({
         猫藏起来之后，它原来趴的那条上沿留一块空白：右键就在这里把它叫回来，
         落点就是光标那一下。一言和时钟各自在自己的位置上恢复。
       */}
-      {!cat && onShowCat ? (
+      {(!cat && onShowCat) || (!clockVisible && onShowClock) ? (
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
@@ -314,7 +319,12 @@ export function SearchBar({
             />
           </ContextMenuTrigger>
           <ContextMenuContent>
-            <ContextMenuItem onSelect={() => onShowCat(spotAtPointer())}>显示小猫</ContextMenuItem>
+            {!cat && onShowCat ? (
+              <ContextMenuItem onSelect={() => onShowCat(spotAtPointer())}>显示小猫</ContextMenuItem>
+            ) : null}
+            {!clockVisible && onShowClock ? (
+              <ContextMenuItem onSelect={onShowClock}>显示时钟</ContextMenuItem>
+            ) : null}
           </ContextMenuContent>
         </ContextMenu>
       ) : null}
