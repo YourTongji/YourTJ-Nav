@@ -41,7 +41,7 @@ import { useSearch } from "@/hooks/use-search"
 import { usePins } from "@/hooks/use-pins"
 import { useWallpaper } from "@/hooks/use-wallpaper"
 import { warmIcons } from "@/lib/icon-cache"
-import { clearRecent, pushRecent, readRecent } from "@/lib/recent-store"
+import { clearRecent, pushRecent, readRecent, removeRecent } from "@/lib/recent-store"
 import { hostOf } from "@/lib/site-store"
 
 const FOLDER_KEY = "yourtj-nav-folder"
@@ -328,6 +328,7 @@ export default function App() {
           {minimal ? null : (
             <RecentSites
               sites={recentSites}
+              onRemove={(id) => setRecent(removeRecent(id))}
               onClear={() => {
                 clearRecent()
                 setRecent([])
