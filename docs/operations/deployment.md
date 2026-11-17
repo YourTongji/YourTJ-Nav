@@ -1,7 +1,8 @@
 # 部署与发布
 
-目前只有一个目标：GitHub Pages。产物是纯静态文件，换成对象存储或 CDN 时只要 `VITE_BASE` 对得上，
-代码不用改。
+两个目标并行：GitHub Pages 和自建服务器。推送 `main` 时两条工作流各自构建、各自发布，互不依赖。
+正式入口 `n.yourtj.de` 由自建服务器承载（经 Cloudflare 代理），Pages 的 github.io 地址保留可用，
+作为备用路径。产物是纯静态文件，换成对象存储或 CDN 时只要 `VITE_BASE` 对得上，代码不用改。
 
 ## GitHub Pages
 
@@ -35,6 +36,50 @@ user 或 org page 以及自定义域名是空。工作流把它拼成 `VITE_BASE
   - `index.html` 里用相对路径 `./yourtj-logo.png`
 - 写死 `"/brand/x.png"`，在 project page 上一定 404。
 
+## 自建服务器
+
+`.github/workflows/deploy-server.yml` 把同一份代码以 `VITE_BASE=/` 构建后发布到自建服务器。
+与 Pages 部署并行，互不影响；构建失败不会走到上传和切换。
+
+### 一次性配置
+
+Settings → Secrets and variables → Actions：
+
+| 名称 | 类型 | 内容 |
+|---|---|---|
+| `DEPLOY_HOST` | Secret | 服务器公网 IPv4 |
+| `DEPLOY_SSH_KEY` | Secret | 专用部署私钥（ed25519，登录无 sudo 的 `yourtj-nav` 用户） |
+| `DEPLOY_KNOWN_HOSTS` | Secret | 服务器主机公钥行：`<主机> ssh-ed25519 AAAA…`。前半截必须和 `DEPLOY_HOST` 完全一致（是 IP 就写 IP，不是域名），否则 ssh 匹配不上；公钥取自 `/etc/ssh/ssh_host_ed25519_key.pub`。固定指纹，不做 keyscan |
+| `SERVER_DEPLOY_ENABLED` | Variable | `true` 时启用；未设置时工作流跳过而非失败 |
+
+服务器侧前提：`yourtj-nav` 用户可密钥登录，`/var/www/yourtj-nav/` 归其所有，
+nginx root 指向 `current` 符号链接（`disable_symlinks off`）。
+
+### 目录结构与切换
+
+```text
+/var/www/yourtj-nav/
+  <sha12>/     每个 commit 一个版本目录
+  current →    指向在用版本的符号链接
+```
+
+新版本先解压到 `.staging-<sha12>/`，校验 `index.html` 存在后才落到版本目录，
+所以包损坏或解压失败碰不到任何在用的版本。随后用 `mv -T` 原子替换 `current`，
+再经 443 全链路探活（严格 200），失败自动切回上一版并以非零码退出。
+
+同一个 commit 重复触发时会直接跳过，不会删掉正在服务的目录。
+保留最近 3 个版本目录（当前版 + 2 个旧版），只清理提交哈希命名的目录；
+目录的 mtime 在切换时会被盖成部署时间，清理顺序才稳定。
+
+### 回滚
+
+把 `current` 指回上一个版本目录即可：
+
+```bash
+ln -sfn /var/www/yourtj-nav/<旧sha12> /var/www/yourtj-nav/current.new
+mv -T /var/www/yourtj-nav/current.new /var/www/yourtj-nav/current
+```
+
 ## 自动补充站点
 
 站点数据是纯文本，所以加一个站点可以全自动：
@@ -59,10 +104,52 @@ deploy.yml 重新构建并发布
 - 幂等。`scripts/add-site.mjs` 先扫一遍现有地址，已经存在就跳过。编辑 Issue 会更新同一个分支，
   不会开出第二个 PR。
 - 人工 PR 不受影响。`auto-merge.yml` 只处理带 `site-request` 标签、并且 head 在本仓库的 PR。
-- 图标。表单留空时自动取 `https://<域名>/favicon.ico`。要自托管图标仍然走人工 PR，
-  把文件放进 `public/brand/`，再用 `asset()` 引用。
+- 图标。先看域名对不对得上 `reicon-brands`：对得上就用本地品牌图标（`brand()`），
+  不发任何请求。对不上才按 `/favicon.ico`、`/favicon.png`、`/apple-touch-icon.png`
+  的顺序试，三个都拿不到就**直接失败，不生成 PR**。
 
-要重跑某条 Issue，在 Actions 里选 Site request → PR 再 Run workflow，或者改一下 Issue 的标签。
+  品牌识别只看可注册域名（`ieeexplore.ieee.org` 取 `ieee`，`mail.google.com` 取 `google`），
+  避免子域名撞上无关图标。判断远端图标用的是文件头而不是 `Content-Type`：
+  403 页面也会返回 200，只有魔数能说明它到底是不是图片。
+
+  远端图标还有一个测不出来的问题：域名被 DNS 污染时，GitHub 的机器（美国）能访问，
+  国内用户打不开，图标就是空白。所以能命中品牌就别用远端 favicon。
+- 要自托管图标仍然走人工 PR，把文件放进 `public/brand/`，再用 `asset()` 引用。
+- 分支永远从最新 `main` 重建。工作流先 `checkout ref: main`，再往工作区写这一条站点，
+  所以分支内容是「main + 一个站点」，不会随着别人的合入越拖越远。
+
+### 冲突自愈
+
+站点 PR 都改 `src/data/sites.ts` 的同一个数组，`main` 一有新的站点合入，还开着的 PR
+就会被标成 `CONFLICTING`。`site-refresh.yml` 在每次 `main` 更新后，把带 `site-request`
+标签且仍开着的 PR 对应的 Issue 重新跑一遍 `site-request.yml`：分支按最新 `main` 重建、
+强推上去，PR 跟着更新，冲突消失。
+
+派发用的是 `workflow_dispatch`。`GITHUB_TOKEN` 触发的事件不会再启动工作流，但
+`workflow_dispatch` 和 `repository_dispatch` 是例外。
+
+同一条限制也影响部署：`auto-merge.yml` 用 `GITHUB_TOKEN` 合入，这次 push 不会触发
+`deploy.yml` 和 `deploy-server.yml`。所以合入之后它会自己派发这两条部署，外加一次
+`site-refresh`。
+
+分支重建会强推，仓库开了 `dismiss_stale_reviews`，所以刷新过的 PR 需要重新 Approve
+一次——内容是从 Issue 文本重新生成的，不会夹带别的改动，但批过的东西被重写就该再看一眼。
+
+### 失败与退场
+
+机器人的每一步都会把结果落回 Issue，不让人对着红叉猜：
+
+| 情况 | 处理 |
+|---|---|
+| 分类不在允许列表 | 失败，Issue 里留言写明允许的分类 |
+| 地址解析不了 | 失败，留言写明原始值 |
+| 图标全部探测失败 | 失败，留言列出试过哪些地址、各自报了什么错 |
+| 地址已经在清单里 | 留言说明，关掉多余 PR，Issue 标 `not planned` 关闭 |
+| Issue 被关闭 | 对应的 `site/issue-<n>` 分支和 PR 一并关掉 |
+| 构建或推送失败 | 失败，留言附本次运行日志链接 |
+
+要重跑某条 Issue，在 Actions 里选 Site request → PR 再 Run workflow 并填 Issue 编号，
+或者改一下 Issue 的标签。
 
 ## 自定义域名
 

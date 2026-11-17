@@ -1,15 +1,17 @@
-import { ArrowUpRight } from "reicon-react"
+import { ArrowUpRight, X } from "reicon-react"
 
 import { Mark, plateProps } from "@/components/Mark"
 import type { Site } from "@/data/sites"
+import { RECENT_LIMIT } from "@/lib/recent-store"
 import { hostOf } from "@/lib/site-store"
 
 type RecentSitesProps = {
   sites: Site[]
+  onRemove: (id: string) => void
   onClear: () => void
 }
 
-export function RecentSites({ sites, onClear }: RecentSitesProps) {
+export function RecentSites({ sites, onRemove, onClear }: RecentSitesProps) {
   if (sites.length === 0) {
     // One quiet line rather than a box: on a fresh install the grid already
     // fills the fold, and a tall placeholder would only push the footer down.
@@ -20,7 +22,7 @@ export function RecentSites({ sites, onClear }: RecentSitesProps) {
             最近访问
           </span>
           <span className="mx-1.5 opacity-50">·</span>
-          点过的站点会出现在这里，最多记 12 个
+          点过的站点会出现在这里，最多记 {RECENT_LIMIT} 个
         </p>
       </section>
     )
@@ -32,7 +34,6 @@ export function RecentSites({ sites, onClear }: RecentSitesProps) {
         <h2 id="recent-heading" className="text-[13px] font-semibold tracking-tight text-ink-muted">
           最近访问
         </h2>
-        <span className="text-[11px] tabular-nums text-ink-muted">{sites.length}</span>
         <button
           type="button"
           onClick={onClear}
@@ -49,16 +50,32 @@ export function RecentSites({ sites, onClear }: RecentSitesProps) {
               lumno's construction, one to one: a tinted board, a glass sheet
               mounted on it, and the URL printed on the board underneath the
               sheet - always visible, never hidden behind it.
+
+              The link is a stretched overlay inside the sheet instead of the
+              card's wrapper, so the remove button can sit on top of it without
+              putting one control inside another.
             */}
-            <a
-              href={site.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="recent-card group rounded-[25px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
+            <div className="recent-card group">
               <span className="recent-mat">
                 <span className="recent-panel">
-                  <span className="flex items-center gap-2">
+                  <a
+                    href={site.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="recent-hit"
+                    aria-label={`打开 ${site.title}`}
+                  />
+
+                  <button
+                    type="button"
+                    className="recent-remove"
+                    aria-label={`从最近访问中移除 ${site.title}`}
+                    onClick={() => onRemove(site.id)}
+                  >
+                    <X size={12} strokeWidth={2.4} aria-hidden="true" />
+                  </button>
+
+                  <span className="flex items-center gap-2 pr-7">
                     <span
                       className="nav-tile-plate grid size-8 shrink-0 place-items-center overflow-hidden rounded-[10px]"
                       {...plateProps(site.mark)}
@@ -82,11 +99,11 @@ export function RecentSites({ sites, onClear }: RecentSitesProps) {
                   <ArrowUpRight
                     size={11}
                     aria-hidden="true"
-                    className="ml-auto shrink-0 opacity-0 transition-[opacity,transform] duration-200 group-hover:-translate-y-px group-hover:translate-x-px group-hover:opacity-100 group-focus-visible:opacity-100"
+                    className="ml-auto shrink-0 opacity-0 transition-[opacity,transform] duration-200 group-hover:-translate-y-px group-hover:translate-x-px group-hover:opacity-100 group-focus-within:opacity-100"
                   />
                 </span>
               </span>
-            </a>
+            </div>
           </li>
         ))}
       </ul>

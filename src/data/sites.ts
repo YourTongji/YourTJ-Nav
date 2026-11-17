@@ -3,7 +3,7 @@ import type { BrandIconFn } from "reicon-brands"
 /** Public assets live under the deploy base, which is not always "/". */
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`
 
-import { Autodesk, Github, Origin, Photopea } from "reicon-brands"
+import { Arxiv, Autodesk, Github, Huggingface, Ieee, Origin, Photopea } from "reicon-brands"
 import type { IconComponent } from "reicon-react"
 import {
   AwardCertificate,
@@ -335,6 +335,27 @@ const academic: Site[] = [
     url: "https://www.wanfangdata.com.cn",
     mark: logo(asset("/brand/wanfang.png"), "light"),
   },
+  {
+    id: "arxiv",
+    title: "Arxiv",
+    description: "全球规模和影响力最大的开放获取预印本平台",
+    url: "https://arxiv.org",
+    mark: brand(Arxiv),
+  },
+  {
+    id: "ieeexplore",
+    title: "IEEE",
+    description: "IEEE（电气与电子工程师学会）数字资源库",
+    url: "https://ieeexplore.ieee.org/Xplore/home.jsp",
+    mark: brand(Ieee),
+  },
+  {
+    id: "ccfddl",
+    title: "CCFDDL",
+    description: "主动跟踪 CCF 排名和全球会议的截止日期",
+    url: "https://ccfddl.com",
+    mark: logo("https://ccfddl.com/favicon.ico", "light"),
+  },
 ]
 
 const ai: Site[] = [
@@ -365,6 +386,13 @@ const ai: Site[] = [
     description: "xAI 对话模型",
     url: "https://grok.com",
     mark: logo(asset("/brand/grok.png"), "light"),
+  },
+  {
+    id: "huggingface",
+    title: "Hugging Face",
+    description: "开源模型与数据集的集散地",
+    url: "https://huggingface.co",
+    mark: brand(Huggingface),
   },
 ]
 

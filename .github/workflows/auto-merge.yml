@@ -2,26 +2,50 @@ name: Auto-merge approved site PRs
 
 # 只对 site-request 机器人生成的 PR 生效：维护者点 Approve 即合入，
 # 合入后 deploy.yml 自动重新发布。人工 PR 不受影响，仍按常规流程走。
+#
+# 两个触发点：
+#   pull_request_review  维护者点了 Approve
+#   pull_request         分支被刷新（site-refresh 重建后，已批准的 PR 直接合）
 on:
   pull_request_review:
     types: [submitted]
+  pull_request:
+    types: [synchronize, ready_for_review]
 
 permissions:
   contents: write
   pull-requests: write
   # 合入后要留言并关单，缺了这一项会报 Resource not accessible by integration
   issues: write
+  # 合入后要派发 site-refresh，缺了这一项会 403
+  actions: write
 
 jobs:
   merge:
     if: |
-      github.event.review.state == 'approved' &&
       contains(github.event.pull_request.labels.*.name, 'site-request') &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      # review 事件和 synchronize 事件都会进来，统一在这里判断有没有批准过。
+      - name: Check the review state
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          DECISION=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json reviewDecision --jq .reviewDecision)
+          STATE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
+          echo "reviewDecision=$DECISION state=$STATE"
+          if [ "$STATE" != "OPEN" ] || [ "$DECISION" != "APPROVED" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # --auto：检查还没落地时排队，而不是直接报错。手动合一次也行。
       - name: Squash merge
+        if: steps.gate.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
@@ -29,9 +53,28 @@ jobs:
           gh pr merge "$PR" --squash --auto --delete-branch --repo "$GITHUB_REPOSITORY" \
             || gh pr merge "$PR" --squash --delete-branch --repo "$GITHUB_REPOSITORY"
 
+      # 等它真的合进去。--auto 是异步的，返回时可能还在排队。
+      - name: Wait for the merge
+        if: steps.gate.outputs.skip == 'false'
+        id: merged
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          for _ in $(seq 1 30); do
+            STATE=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
+            if [ "$STATE" = "MERGED" ]; then
+              echo "merged=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "merged=false" >> "$GITHUB_OUTPUT"
+
       # PR 正文里的 Closes #N 会在合入时自动关单，这里只负责留言，
       # 并兜底处理「关单没生效」的情况（比如 PR 正文被改过）。
       - name: Comment on the source issue
+        if: steps.gate.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -43,11 +86,28 @@ jobs:
             exit 0
           fi
 
-          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" \
-            --body "已合入：$PR_URL。站点会在下一次部署后生效。"
+          # 链接写成 markdown 形式并单独成行：裸 URL 后面紧跟中文标点时，
+          # GitHub 会把标点也算进链接里，整段变成一块蓝色。
+          {
+            printf '已合入 [#%s](%s)。\n\n' "${{ github.event.pull_request.number }}" "$PR_URL"
+            printf '部署会自动跑，一两分钟后线上就能看到。\n'
+          } > "$RUNNER_TEMP/merged.md"
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/merged.md"
 
           STATE=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
           if [ "$STATE" = "OPEN" ]; then
             gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" \
-              --reason completed --comment "已合入 #${{ github.event.pull_request.number }}，自动关闭。"
+              --reason completed \
+              --comment "已合入 [#${{ github.event.pull_request.number }}]($PR_URL)，自动关闭。"
           fi
+
+      # 这次合入是 GITHUB_TOKEN 做的，push 事件不会再触发其他工作流。
+      # 部署和 site-refresh 都不会自己跑，这里手动派发一次。
+      - name: Trigger the deploys and the refresh
+        if: steps.merged.outputs.merged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main
+          gh workflow run deploy-server.yml --repo "$GITHUB_REPOSITORY" --ref main
+          gh workflow run site-refresh.yml --repo "$GITHUB_REPOSITORY" --ref main

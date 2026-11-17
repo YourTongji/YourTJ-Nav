@@ -5,6 +5,17 @@ import type { SiteMark } from "@/data/sites"
 import { clearMissing, isMissing, markMissing } from "@/lib/icon-cache"
 
 /**
+ * 品牌图标的品牌色如果是白的，画在白色底板上等于没画。Hugging Face 就是
+ * `#FFFFFF`。这类图标改用底板的墨色，让它在板上显出来。
+ */
+function isPaleHex(hex: string): boolean {
+  const value = hex.replace(/^#/, "")
+  if (value.length !== 6) return false
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16) / 255)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.75
+}
+
+/**
  * A macaron tint per glyph, derived from the icon itself so the same site keeps
  * the same colour between visits. Lightness and chroma are fixed and chosen so
  * every hue clears 4.5:1 on the white plate — pastel hues at their natural
@@ -132,12 +143,15 @@ export function Mark({ mark, size = 26 }: MarkProps) {
     return <LogoImage key={mark.src} mark={mark} size={size} />
   }
 
+  // 品牌色偏白时交给 CSS 的 currentColor，由 plate-ink 决定最终颜色。
+  const pale = isPaleHex(mark.Icon.hex)
+
   return (
     <span
       aria-hidden="true"
-      className="grid place-items-center [&>svg]:block"
+      className={`grid place-items-center [&>svg]:block${pale ? " plate-ink" : ""}`}
       dangerouslySetInnerHTML={{
-        __html: mark.Icon.toSvg({ size, color: `#${mark.Icon.hex}` }),
+        __html: mark.Icon.toSvg({ size, color: pale ? "currentColor" : `#${mark.Icon.hex}` }),
       }}
     />
   )
