@@ -1246,7 +1246,7 @@ html[data-transition="theme"]::view-transition-new(root) {
   }
 
   .recent-card:hover .recent-mat,
-  .recent-card:focus-visible .recent-mat {
+  .recent-card:focus-within .recent-mat {
     transform: rotate(-2deg) scale(1.014);
     box-shadow: var(--mat-edge), 0 22px 46px -26px var(--shade);
   }
@@ -1270,7 +1270,7 @@ html[data-transition="theme"]::view-transition-new(root) {
   }
 
   .recent-card:hover .recent-panel,
-  .recent-card:focus-visible .recent-panel {
+  .recent-card:focus-within .recent-panel {
     height: calc(var(--sheet-rest) + var(--sheet-lift));
     transform: translateY(calc(var(--sheet-lift) * -1));
     margin-bottom: calc(var(--sheet-lift) * -1);
@@ -1285,8 +1285,83 @@ html[data-transition="theme"]::view-transition-new(root) {
 
   /* The sheet grows by exactly one line, so hover uncovers a fourth. */
   .recent-card:hover .recent-desc,
-  .recent-card:focus-visible .recent-desc {
+  .recent-card:focus-within .recent-desc {
     -webkit-line-clamp: 4;
+  }
+
+  /*
+    The card's click target is a stretched link inside the sheet, not the whole
+    card wrapper: that way the remove button can sit above it instead of being
+    nested inside an anchor.
+  */
+  .recent-hit {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: 18px;
+  }
+
+  .recent-hit:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: -3px;
+  }
+
+  .recent-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    color: var(--ink-muted);
+    opacity: 0;
+    transform: scale(0.86);
+    pointer-events: none;
+    transition:
+      opacity 150ms var(--ease-out-soft),
+      transform 150ms var(--ease-out-soft),
+      color 150ms var(--ease-out-soft),
+      background-color 150ms var(--ease-out-soft);
+  }
+
+  /* The dot stays small; the touch target still clears 24px. */
+  .recent-remove::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+  }
+
+  .recent-card:hover .recent-remove,
+  .recent-card:focus-within .recent-remove {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .recent-remove:hover {
+    color: var(--ink);
+    background-color: oklch(0 0 0 / 0.07);
+  }
+
+  .recent-remove:focus-visible {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    outline: 2px solid var(--brand);
+    outline-offset: 1px;
+  }
+
+  /* No hover to reveal it with: keep it on screen. */
+  @media (hover: none) {
+    .recent-remove {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
   }
 
   .recent-url {
@@ -1307,12 +1382,12 @@ html[data-transition="theme"]::view-transition-new(root) {
 
   @media (prefers-reduced-motion: reduce) {
     .recent-card:hover .recent-mat,
-    .recent-card:focus-visible .recent-mat {
+    .recent-card:focus-within .recent-mat {
       transform: none;
     }
 
     .recent-card:hover .recent-panel,
-    .recent-card:focus-visible .recent-panel {
+    .recent-card:focus-within .recent-panel {
       height: calc(var(--sheet-rest) + var(--sheet-lift));
       transform: none;
       margin-bottom: calc(var(--sheet-lift) * -1);
