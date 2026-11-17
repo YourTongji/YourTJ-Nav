@@ -530,7 +530,7 @@
   outline-offset: 1px;
 }
 
-/* 键盘打开卡片时才出现：Tab 被菜单圈住，进不到复制按钮，改用 C 键。 */
+/* Tab 被菜单圈住进不到复制按钮，键盘改用 C 键；触屏没有键盘，藏掉。 */
 .feedback-key {
   display: grid;
   place-items: center;
@@ -563,6 +563,10 @@
   .feedback-chip {
     width: 40px;
     height: 40px;
+  }
+
+  .feedback-key {
+    display: none;
   }
 }
 

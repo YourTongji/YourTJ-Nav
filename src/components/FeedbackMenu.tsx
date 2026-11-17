@@ -58,7 +58,6 @@ export function FeedbackMenu() {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [tipId, setTipId] = useState<string | null>(null)
-  const [tipByKeyboard, setTipByKeyboard] = useState(false)
   const timer = useRef<number | null>(null)
   const closeTimer = useRef<number | null>(null)
 
@@ -71,10 +70,9 @@ export function FeedbackMenu() {
     Radix 的 tooltip 在焦点离开触发器时立刻关闭，而菜单项一悬停就会拿到焦点，
     指针往卡片上移一步就没了。这里自己管开合：离开后留 160ms 给指针跨过间隙。
   */
-  function openTip(id: string, byKeyboard: boolean) {
+  function openTip(id: string) {
     if (closeTimer.current) window.clearTimeout(closeTimer.current)
     setTipId(id)
-    setTipByKeyboard(byKeyboard)
   }
 
   function scheduleCloseTip() {
@@ -192,9 +190,9 @@ export function FeedbackMenu() {
                   rel={channel.external ? "noopener noreferrer" : undefined}
                   aria-label={channel.title}
                   data-channel={channel.id}
-                  onPointerEnter={() => openTip(channel.id, false)}
+                  onPointerEnter={() => openTip(channel.id)}
                   onPointerLeave={scheduleCloseTip}
-                  onFocus={() => openTip(channel.id, true)}
+                  onFocus={() => openTip(channel.id)}
                   onBlur={scheduleCloseTip}
                 >
                   {channel.brand ? (
@@ -213,9 +211,9 @@ export function FeedbackMenu() {
               className="max-w-56 px-3 py-2.5 motion-reduce:animate-none"
               // 指针要能从图标移到卡片上，复制按钮才点得到。
               onPointerDownOutside={(event) => event.preventDefault()}
-              onPointerEnter={() => openTip(channel.id, false)}
+              onPointerEnter={() => openTip(channel.id)}
               onPointerLeave={scheduleCloseTip}
-              onFocusCapture={() => openTip(channel.id, true)}
+              onFocusCapture={() => openTip(channel.id)}
               onBlurCapture={(event) => {
                 const next = event.relatedTarget as Node | null
                 if (next && event.currentTarget.contains(next)) return
@@ -237,7 +235,7 @@ export function FeedbackMenu() {
                     <span className="absolute inset-0 text-brand">已复制</span>
                   ) : null}
                 </span>
-                {channel.copyValue && tipByKeyboard ? (
+                {channel.copyValue ? (
                   <kbd className="feedback-key" aria-hidden="true">
                     C
                   </kbd>
