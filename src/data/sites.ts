@@ -387,6 +387,13 @@ const ai: Site[] = [
     url: "https://grok.com",
     mark: logo(asset("/brand/grok.png"), "light"),
   },
+  {
+    id: "huggingface",
+    title: "Hugging Face",
+    description: "开源模型与数据集的集散地",
+    url: "https://huggingface.co",
+    mark: logo("https://huggingface.co/favicon.ico", "light"),
+  },
 ]
 
 const tools: Site[] = [
