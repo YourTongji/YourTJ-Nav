@@ -95,10 +95,13 @@ jobs:
               --reason completed --comment "已合入 #${{ github.event.pull_request.number }}，自动关闭。"
           fi
 
-      # 这次合入是 GITHUB_TOKEN 做的，push 事件不会再触发其他工作流，
-      # site-refresh 不会自己跑。这里手动派发一次，把还开着的站点 PR 刷到最新 main。
-      - name: Refresh the remaining site PRs
+      # 这次合入是 GITHUB_TOKEN 做的，push 事件不会再触发其他工作流。
+      # 部署和 site-refresh 都不会自己跑，这里手动派发一次。
+      - name: Trigger the deploys and the refresh
         if: steps.merged.outputs.merged == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run site-refresh.yml --repo "$GITHUB_REPOSITORY" --ref main
+        run: |
+          gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main
+          gh workflow run deploy-server.yml --repo "$GITHUB_REPOSITORY" --ref main
+          gh workflow run site-refresh.yml --repo "$GITHUB_REPOSITORY" --ref main
