@@ -955,6 +955,11 @@ html[data-transition="theme"]::view-transition-new(root) {
     background-image: none;
     backdrop-filter: none;
   }
+
+  /* 反馈面板里的圆形入口平时是半透明的抬起色，这里给它一个实色底。 */
+  .feedback-chip {
+    background-color: var(--popover);
+  }
 }
 
 @supports not (backdrop-filter: blur(1px)) {

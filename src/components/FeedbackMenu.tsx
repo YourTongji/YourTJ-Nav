@@ -24,7 +24,7 @@ const channels = [
   {
     id: "email",
     title: "YourTJ团队邮箱",
-    description: `${feedbackEmail}`,
+    description: feedbackEmail,
     href: `mailto:${feedbackEmail}`,
     external: false,
     brand: null,
@@ -88,7 +88,7 @@ export function FeedbackMenu() {
             <TooltipTrigger asChild>
               <DropdownMenuItem
                 asChild
-                className="feedback-chip shrink-0 justify-center rounded-full bg-[var(--mat-raised)] p-0 text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="feedback-chip shrink-0 justify-center rounded-full bg-[var(--mat-raised)] p-0 text-ink focus:bg-[var(--mat-raised-hover)] focus:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <a
                   href={channel.href}
