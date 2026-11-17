@@ -66,7 +66,10 @@ jobs:
           PREV="$(readlink -f "$BASE/current" || true)"
           ln -sfn "$REL" "$BASE/current.new"
           mv -T "$BASE/current.new" "$BASE/current"
-          if ! curl -sf -o /dev/null http://127.0.0.1/; then
+          # 探活走真实用户路径：443 → Xray 回落 → nginx，严格校验证书。
+          # 任一域名失败即回滚，证书续期失败也能在此兜住。
+          if ! curl -sf -o /dev/null --resolve nav.jkljkluiouio.top:443:127.0.0.1 https://nav.jkljkluiouio.top/ \
+             || ! curl -sf -o /dev/null --resolve n.yourtj.de:443:127.0.0.1 https://n.yourtj.de/; then
             if [ -n "$PREV" ]; then
               ln -sfn "$PREV" "$BASE/current.new"
               mv -T "$BASE/current.new" "$BASE/current"
