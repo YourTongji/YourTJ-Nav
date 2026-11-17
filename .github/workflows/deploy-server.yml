@@ -1,0 +1,80 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一时间只跑一个服务器部署，不取消进行中的——半路取消会留下不完整的版本目录。
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 服务器部署在根路径，与 Pages 的 base_path 无关。
+      - name: Build
+        run: npm run build
+        env:
+          VITE_BASE: /
+
+      - name: Prepare SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -T 10 -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload dist
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          tar -czf /tmp/yourtj-dist.tgz -C dist .
+          scp -i ~/.ssh/id_deploy /tmp/yourtj-dist.tgz admin@"$DEPLOY_HOST":/tmp/yourtj-dist.tgz
+
+      # 原子切换：新版本目录就绪并自检通过后才替换 current 符号链接；
+      # 自检失败自动切回上一版。保留最近 3 个版本目录用于回滚。
+      - name: Atomic switch
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_deploy admin@"$DEPLOY_HOST" 'bash -s' -- "$GITHUB_SHA" <<'EOF'
+          set -euo pipefail
+          BASE=/var/www/yourtj-nav
+          REL="$BASE/${1:0:12}"
+          mkdir -p "$REL"
+          tar -xzf /tmp/yourtj-dist.tgz -C "$REL"
+          rm /tmp/yourtj-dist.tgz
+          test -f "$REL/index.html"
+          PREV="$(readlink -f "$BASE/current" || true)"
+          ln -sfn "$REL" "$BASE/current.new"
+          mv -T "$BASE/current.new" "$BASE/current"
+          if ! curl -sf -o /dev/null http://127.0.0.1/; then
+            if [ -n "$PREV" ]; then
+              ln -sfn "$PREV" "$BASE/current.new"
+              mv -T "$BASE/current.new" "$BASE/current"
+            fi
+            echo "health check failed, rolled back to $PREV" >&2
+            exit 1
+          fi
+          cd "$BASE"
+          ls -1t | grep -v '^current' | tail -n +4 | xargs -r rm -rf --
+          echo "deployed $REL"
+          EOF
