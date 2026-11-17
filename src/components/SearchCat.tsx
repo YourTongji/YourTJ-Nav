@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/context-menu"
 
 /** 换 cat-typing.webp 的内容时 +1，否则浏览器会继续用缓存里的旧图。 */
-const TYPING_ASSET_VERSION = "2"
+const TYPING_ASSET_VERSION = "3"
 
 /** An animated decoration should hold still when the system asks for calm. */
 function usePrefersReducedMotion() {
