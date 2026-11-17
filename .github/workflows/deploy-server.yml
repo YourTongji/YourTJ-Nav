@@ -75,6 +75,9 @@ jobs:
             exit 1
           fi
           cd "$BASE"
-          ls -1t | grep -v '^current' | tail -n +4 | xargs -r rm -rf --
+          # 只清理 12 位提交哈希命名的版本目录，且永不删除当前在用版本，
+          # 避免演练/手工目录挤占名额导致回滚备份被误删。
+          CUR="$(basename "$(readlink current)")"
+          ls -1t | grep -E '^[0-9a-f]{12}$' | grep -vxF "$CUR" | tail -n +3 | xargs -r rm -rf --
           echo "deployed $REL"
           EOF
