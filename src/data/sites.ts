@@ -335,6 +335,13 @@ const academic: Site[] = [
     url: "https://www.wanfangdata.com.cn",
     mark: logo(asset("/brand/wanfang.png"), "light"),
   },
+  {
+    id: "arxiv",
+    title: "Arxiv",
+    description: "全球规模和影响力最大的开放获取预印本平台",
+    url: "https://arxiv.org",
+    mark: logo("https://arxiv.org/favicon.ico", "light"),
+  },
 ]
 
 const ai: Site[] = [
