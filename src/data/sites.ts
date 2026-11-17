@@ -342,6 +342,13 @@ const academic: Site[] = [
     url: "https://arxiv.org",
     mark: logo("https://arxiv.org/favicon.ico", "light"),
   },
+  {
+    id: "ieeexplore",
+    title: "IEEE",
+    description: "IEEE（电气与电子工程师学会）数字资源库",
+    url: "https://ieeexplore.ieee.org/Xplore/home.jsp",
+    mark: logo("https://ieeexplore.ieee.org/favicon.ico", "light"),
+  },
 ]
 
 const ai: Site[] = [
