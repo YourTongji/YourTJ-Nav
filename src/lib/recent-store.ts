@@ -24,6 +24,17 @@ export function pushRecent(id: string): string[] {
   return next
 }
 
+/** Drop one id; the ones behind it move up to fill the row. */
+export function removeRecent(id: string): string[] {
+  const next = readRecent().filter((entry) => entry !== id)
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    // Private mode: recents stay in memory for this session.
+  }
+  return next
+}
+
 export function clearRecent() {
   try {
     window.localStorage.removeItem(STORAGE_KEY)
