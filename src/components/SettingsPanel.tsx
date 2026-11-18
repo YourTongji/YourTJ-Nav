@@ -30,8 +30,12 @@ type SettingsPanelProps = {
   onThemeMode: (mode: ThemeMode) => void
   quoteVisible: boolean
   catVisible: boolean
+  dock: boolean
+  /** 只有鼠标设备才显示这个开关——触摸屏上它做不了任何事。 */
+  dockAvailable: boolean
   onCatVisible: (visible: boolean) => void
   onQuoteVisible: (visible: boolean) => void
+  onDock: (enabled: boolean) => void
   searchWidth: number
   onSearchWidth: (width: number) => void
   clock: ClockController
@@ -419,6 +423,9 @@ export function SettingsPanel({
   onThemeMode,
   quoteVisible,
   onQuoteVisible,
+  dock,
+  onDock,
+  dockAvailable,
   catVisible,
   onCatVisible,
   searchWidth,
@@ -568,6 +575,9 @@ export function SettingsPanel({
               <div>
                 <SwitchRow title="显示一言" checked={quoteVisible} onChange={onQuoteVisible} />
                 <SwitchRow title="显示小猫" checked={catVisible} onChange={onCatVisible} />
+                {dockAvailable ? (
+                  <SwitchRow title="置顶栏缩放" checked={dock} onChange={onDock} />
+                ) : null}
               </div>
             </div>
           </SettingsGroup>

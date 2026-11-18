@@ -11,6 +11,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import type { Site } from "@/data/sites"
+import { useDockMagnify } from "@/hooks/use-dock-magnify"
 import { useDraggingSiteId } from "@/hooks/use-site-drag"
 import { isSiteDrag, readDraggedId, writeDragData, endSiteDrag, beginSiteDrag } from "@/lib/drag"
 import { cn } from "@/lib/utils"
@@ -29,6 +30,7 @@ export function PinnedBar({
   onMove,
   onPin,
   onOpenPicker,
+  dock = true,
 }: {
   pins: Site[]
   onVisit: (id: string) => void
@@ -36,6 +38,8 @@ export function PinnedBar({
   onMove: (from: number, to: number) => void
   onPin: (id: string, index?: number) => void
   onOpenPicker: () => void
+  /** 鼠标划过时像 Dock 一样放大；关掉就整排不动。 */
+  dock?: boolean
 }) {
   const listRef = useRef<HTMLUListElement>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -45,6 +49,9 @@ export function PinnedBar({
   const [edges, setEdges] = useState({ left: false, right: false })
   const [marker, setMarker] = useState<Marker | null>(null)
   const [ctxSite, setCtxSite] = useState<{ site: Site; index: number } | null>(null)
+
+  // 拖拽排序的时候不放大：指针要横穿整排，放大只会让落点一直漂。
+  useDockMagnify(listRef, dock && !draggingId)
 
   // One row, always: past a handful of pins the row scrolls sideways instead
   // of pushing the hero down another line on a phone.
@@ -142,7 +149,9 @@ export function PinnedBar({
             <div
               ref={scrollerRef}
               data-scrollable={scrollable ? "true" : undefined}
-              className="pinned-row overflow-x-auto overscroll-x-contain"
+              data-fade-start={edges.left ? "true" : undefined}
+              data-fade-end={edges.right ? "true" : undefined}
+              className="pinned-row scroll-fade overflow-x-auto overscroll-x-contain"
             >
             <ul
               ref={listRef}
@@ -198,6 +207,7 @@ export function PinnedBar({
                 <li
                   key={site.id}
                   data-pin-id={site.id}
+                  data-dock-item
                   draggable
                   onDragStart={(event) => {
                     writeDragData(event, site.id)
@@ -219,11 +229,13 @@ export function PinnedBar({
                     onClick={() => onVisit(site.id)}
                     className="group flex cursor-grab flex-col items-center gap-1.5 rounded-[14px] px-1 py-1.5 transition-colors hover:bg-[color-mix(in_oklab,var(--background)_45%,transparent)] active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                   >
-                    <span
-                      className="nav-tile-plate grid size-11 place-items-center overflow-hidden rounded-[13px] transition-transform duration-150 group-hover:-translate-y-0.5"
-                      {...plateProps(site.mark)}
-                    >
-                      <Mark mark={site.mark} size={22} />
+                    <span className="dock-scale">
+                      <span
+                        className="nav-tile-plate grid size-11 place-items-center overflow-hidden rounded-[13px] transition-transform duration-150 group-hover:-translate-y-0.5"
+                        {...plateProps(site.mark)}
+                      >
+                        <Mark mark={site.mark} size={22} />
+                      </span>
                     </span>
                     <span className="w-full truncate text-center text-[10.5px] leading-tight text-ink-muted transition-colors group-hover:text-ink">
                       {site.title}
@@ -232,19 +244,21 @@ export function PinnedBar({
                 </li>
               ))}
 
-              <li>
+              <li data-dock-item>
                 <button
                   type="button"
                   onClick={onOpenPicker}
                   aria-label={pins.length ? "添加置顶站点" : "选择置顶站点"}
                   className="group flex w-[64px] flex-col items-center gap-1.5 rounded-[14px] px-1 py-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
-                  <span className="grid size-11 place-items-center rounded-[13px] border border-dashed border-hairline-strong text-ink-muted transition-colors group-hover:border-brand group-hover:text-ink">
-                    {pins.length ? (
-                      <Plus size={16} aria-hidden="true" />
-                    ) : (
-                      <Star size={17} aria-hidden="true" />
-                    )}
+                  <span className="dock-scale">
+                    <span className="grid size-11 place-items-center rounded-[13px] border border-dashed border-hairline-strong text-ink-muted transition-colors group-hover:border-brand group-hover:text-ink">
+                      {pins.length ? (
+                        <Plus size={16} aria-hidden="true" />
+                      ) : (
+                        <Star size={17} aria-hidden="true" />
+                      )}
+                    </span>
                   </span>
                   <span className="w-full truncate text-center text-[10.5px] leading-tight text-ink-muted transition-colors group-hover:text-ink">
                     {pins.length ? "添加" : "置顶常用"}
@@ -272,7 +286,7 @@ export function PinnedBar({
               data-visible={edges.left ? "true" : undefined}
               className="pinned-arrow pinned-arrow-left"
             >
-              <ChevronLeft size={15} aria-hidden="true" />
+              <ChevronLeft size={16} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -283,7 +297,7 @@ export function PinnedBar({
               data-visible={edges.right ? "true" : undefined}
               className="pinned-arrow pinned-arrow-right"
             >
-              <ChevronRight size={15} aria-hidden="true" />
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
             </div>
 
