@@ -575,20 +575,78 @@
 */
 .pinned-row {
   scrollbar-width: none;
+  /*
+    放大是 transform，不影响布局，但会被这个滚动容器裁掉——`overflow-x: auto` 会把
+    `overflow-y` 一并算成 auto，两轴没法一个 visible 一个 auto。
+    所以给上面留出放大需要的那点高度（(1.38-1)×44 ≈ 17px），再用负 margin 把版面拉回来，
+    内容位置不变，只是裁剪框往上多出 18px。
+  */
+  padding-top: 18px;
+  margin-top: -18px;
+  /*
+    横向同理。放大是围绕图标中心两边一起长，行滚到两头时最边上那颗会各往外伸
+    (1.38-1)×44/2 ≈ 8px，再叠上整排摊开的位移，一共 20 出头——原来全被容器切掉。
+    左右各留 22px 的裁剪余量，再用负 margin 把盒子拉回去：图标在版面里的位置一点不动，
+    只是裁剪框往外多了 22px。
+  */
+  padding-inline: 22px;
+  margin-inline: -22px;
 }
 
 .pinned-row::-webkit-scrollbar {
   display: none;
 }
 
-.pinned-row li {
-  flex: 0 0 auto;
+@media (pointer: coarse) {
+  .pinned-row {
+    scroll-snap-type: x proximity;
+  }
+
+  .pinned-row li {
+    scroll-snap-align: start;
+  }
 }
 
-.pinned-row[data-scrollable="true"] {
-  mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+.pinned-row li {
+  flex: 0 0 auto;
+  /* 位移由 use-dock-magnify 逐帧直接写 transform，没装的时候没有这一行。 */
 }
+
+/*
+  只有图标放大，文字不跟着放大——1.38 倍的字会糊成一团。
+  以底边为原点往上长，所以它只会往搜索框那个方向顶，不会压到自己的文字。
+*/
+.dock-scale {
+  display: block;
+  transform-origin: 50% 100%;
+}
+
+/*
+  放大期间把这两个元素提到自己的合成层：缩放就变成对一张贴图做变换，不用每帧重绘。
+  只在指针真的在行里的时候开，移开就撤——平时不该多出 50 个图层。
+*/
+.scroll-fade[data-dock-active="true"] li,
+.scroll-fade[data-dock-active="true"] .dock-scale {
+  will-change: transform;
+}
+
+/* 指针离开后回位要有个过程，划过的时候不能加过渡，否则每一帧都在追。 */
+.pinned-row[data-dock-settling="true"] li,
+.pinned-row[data-dock-settling="true"] .dock-scale {
+  transition: transform 220ms var(--ease-out-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinned-row[data-dock-settling="true"] li,
+  .pinned-row[data-dock-settling="true"] .dock-scale {
+    transition: none;
+  }
+}
+
+/*
+  渐隐由 .scroll-fade 按边控制：只有那一侧真的还有内容才淡出。
+  原来不管滚到哪儿两边都淡，滚到最左的时候左边还在淡，看着像被切掉了一块。
+*/
 
 /* 40px with a pointer, 44px under a finger: the corner is where thumbs land. */
 .corner-button {
@@ -686,6 +744,11 @@
 
 /* A sideways row that still hides something fades on that side only. */
 .scroll-fade {
+  /*
+    渐隐宽度只管「图标淡出多长」——32px 差不多是半个图标，能看出后面还有，又不至于
+    把边上的图标直接抹掉。触摸区的宽度由箭头自己定（44 / 52），两者不必相等。
+  */
+  --fade: 32px;
   --fade-start: 0px;
   --fade-end: 0px;
   mask-image: linear-gradient(
@@ -698,11 +761,23 @@
 }
 
 .scroll-fade[data-fade-start="true"] {
-  --fade-start: 28px;
+  --fade-start: var(--fade);
 }
 
 .scroll-fade[data-fade-end="true"] {
-  --fade-end: 28px;
+  --fade-end: var(--fade);
+}
+
+@media (pointer: coarse) {
+  .scroll-fade {
+    --fade: 40px;
+  }
+}
+
+/* 鼠标在行里的时候不渐隐——正在被放大的那颗图标不该同时被压暗。 */
+.scroll-fade[data-dock-active="true"] {
+  --fade-start: 0px;
+  --fade-end: 0px;
 }
 
 /*
@@ -711,34 +786,85 @@
 */
 .pinned-arrow {
   position: absolute;
-  top: 50%;
-  z-index: 3;
+  top: 0;
+  bottom: 0;
+  z-index: 4;
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 22px;
+  /*
+    触摸区就是遮罩那一条：整行高、和渐隐同宽。里面只有一根箭头，没有底色没有边框。
+    之前做成圆片按钮，一是丑，二是圆角外面会漏到下面的图标上去——那一下会开走一个站点。
+    现在整条都是它，边缘按下去只会滚动。
+  */
+  width: 44px;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--ink-muted);
+  color: var(--ink);
   cursor: pointer;
   opacity: 0;
-  translate: 0 -50%;
   pointer-events: none;
+  touch-action: pan-x;
+  -webkit-tap-highlight-color: transparent;
   transition:
     opacity 180ms var(--ease-out-soft),
     color 150ms var(--ease-out-soft);
 }
 
+/*
+  触摸区只留一团贴着箭头的柔光，不铺带子。
+  横向渐变那条带子的左右是软的、上下是硬的，压在行上就是一块塑料片，和图标之间一道缝。
+  径向渐变四周都软，收得也紧，读起来只是「箭头底下有点托底」，不会划出边界。
+  颜色取 --ink：浅色主题是深色、深色主题是浅色，永远和背景反着来。
+*/
+.pinned-arrow::before {
+  content: "";
+  position: absolute;
+  inset: 14% -6px;
+  pointer-events: none;
+  background: radial-gradient(
+    46% 44% at 50% 50%,
+    color-mix(in oklab, var(--ink) 10%, transparent) 0%,
+    color-mix(in oklab, var(--ink) 4%, transparent) 48%,
+    transparent 74%
+  );
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out-soft);
+}
+
+.pinned-arrow[data-visible="true"]::before {
+  opacity: 1;
+}
+
+/*
+  箭头落的那一片正好是被遮罩淡掉的地方，背后就是壁纸。0.62 的不透明度在浅色壁纸上
+  几乎看不见——现在给足对比：整颗实色，再补一层很轻的投影，任何底色上都立得住。
+*/
+.pinned-arrow svg {
+  opacity: 1;
+  filter: drop-shadow(0 1px 1.5px oklch(0 0 0 / 0.35));
+  transition: opacity 150ms var(--ease-out-soft);
+}
+
 .pinned-arrow[data-visible="true"] {
-  opacity: 0.85;
+  opacity: 1;
   pointer-events: auto;
 }
 
 .pinned-arrow:hover,
 .pinned-arrow:focus-visible {
-  opacity: 1;
-  color: var(--ink);
+  color: var(--brand);
+}
+
+.pinned-arrow:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -3px;
+}
+
+@media (pointer: coarse) {
+  .pinned-arrow {
+    width: 52px;
+  }
 }
 
 .pinned-arrow-left {

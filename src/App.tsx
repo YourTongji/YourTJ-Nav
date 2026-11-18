@@ -57,6 +57,10 @@ function readFolder(): string {
   }
 }
 
+/** 触摸屏没有「划过」，程序坞缩放这个开关在那些设备上不该出现。 */
+const FINE_POINTER =
+  typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches
+
 export default function App() {
   const { mode, setMode } = useTheme()
   const wallpaper = useWallpaper()
@@ -66,6 +70,11 @@ export default function App() {
   const pins = usePins()
   const [quoteVisible, , setQuoteVisible] = useBoolPref("yourtj-nav-quote", true)
   const [catVisible, , setCatVisible] = useBoolPref("yourtj-nav-cat", true)
+  /*
+    程序坞缩放只在有鼠标的设备上默认打开。触摸屏没有「划过」这回事，开关摆在那儿
+    也只会让人以为坏了。
+  */
+  const [dock, , setDock] = useBoolPref("yourtj-nav-dock", FINE_POINTER)
   const [catSpot, setCatSpot] = useNumberPref("yourtj-nav-cat-spot", 0, 0, 1)
   // 从右键菜单叫回来时指定破壳位置；普通开关走随机。
   const [catHatchAt, setCatHatchAt] = useState<number | null>(null)
@@ -274,6 +283,7 @@ export default function App() {
                 onMove={pins.move}
                 onPin={pins.add}
                 onOpenPicker={() => setPickerOpen(true)}
+                dock={dock}
               />
               <div className="relative">
                 <Collapse open={quoteVisible}>
@@ -406,6 +416,9 @@ export default function App() {
         sites={sites}
         themeMode={mode}
         onThemeMode={setMode}
+        dock={dock}
+        onDock={setDock}
+        dockAvailable={FINE_POINTER}
         quoteVisible={quoteVisible}
         catVisible={catVisible}
         onCatVisible={setCatVisible}
