@@ -586,11 +586,12 @@
   /*
     横向同理。放大是围绕图标中心两边一起长，行滚到两头时最边上那颗会各往外伸
     (1.38-1)×44/2 ≈ 8px，再叠上整排摊开的位移，一共 20 出头——原来全被容器切掉。
-    左右各留 22px 的裁剪余量，再用负 margin 把盒子拉回去：图标在版面里的位置一点不动，
-    只是裁剪框往外多了 22px。
+    左右留出裁剪余量，再用负 margin 把盒子拉回去：图标在版面里的位置一点不动，
+    只是裁剪框往外多了一点。余量取「22px 和页面留白里更小的那个」——超过留白就会
+    把整个页面撑出横向滚动条。
   */
-  padding-inline: 22px;
-  margin-inline: -22px;
+  padding-inline: min(22px, var(--page-gutter));
+  margin-inline: calc(-1 * min(22px, var(--page-gutter)));
 }
 
 .pinned-row::-webkit-scrollbar {
