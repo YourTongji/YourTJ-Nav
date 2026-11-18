@@ -51,10 +51,28 @@ components/  界面。只有这里碰 DOM，data 和 lib 不认识 React
 | `yourtj-nav-cat` | localStorage | 搜索栏小猫开关 |
 | `yourtj-nav-cat-spot` | localStorage | 小猫在搜索框上沿的位置，0 到 1 |
 | `yourtj-nav-clock` | localStorage | 时钟整组设置，一个 JSON |
+| `yourtj-nav-touch` | localStorage | 落盘哨兵，每次进后台换一个时间戳 |
 | `tj-nav` / `wallpaper` | IndexedDB | 自定义壁纸的 Blob 列表 |
 
 壁纸放 IndexedDB，是因为一张照片有几 MB，localStorage 配额放不下，主线程编码还会卡。
 偏好放 localStorage，是因为它小、同步可读，首屏内联脚本能在 React 起来之前读到。
+
+### 落盘
+
+localStorage 是批量异步刷盘的，进程被杀会丢最后一段。`lib/persist.ts` 在
+`pagehide` 和 `visibilitychange:hidden` 时写一个每次都变的哨兵键（`yourtj-nav-touch`），
+把存储弄脏，逼引擎刷一次。
+
+之所以是哨兵键而不是「把当前值重写一遍」：规范里 `oldValue === value` 时 `setItem`
+什么也不做，重写同值是空操作。
+
+**没有做 cookie 镜像。** 试过，量完之后撤了：一个 1.3 KB 的偏好 cookie 会跟着一次首屏的
+17 个同源请求走一遍（`/brand/*.png`、`/cat.webp` 都算），合计 22 KB；而且 cookie 随每个
+请求发给服务器，等于把用户的外观设置写进服务端日志。Safari 的 ITP 对脚本写入的存储
+（含 `document.cookie`）有 7 天上限，也活不过 localStorage。它想救的无痕模式，
+cookie 同样是会话级的。
+
+浏览器真要清（无痕、或者退出时清站点数据），网页侧没有办法，那是浏览器的决定。
 
 ## 首屏
 
