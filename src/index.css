@@ -138,11 +138,14 @@
   --brand: oklch(0.8 0.105 228);
   --ring: oklch(0.8 0.105 228 / 0.65);
 
-  /* A touch heavier than before: on a bright wallpaper the backdrop landed at
-     mid-grey, where nothing dark-on-dark or light-on-light can reach 3:1. */
-  --scrim-from: oklch(0.13 0.012 262 / 0.7);
-  --scrim-to: oklch(0.1 0.012 262 / 0.9);
-  --veil: oklch(0.08 0.01 262 / 0.28);
+  /*
+    深色这层原来是 70% → 90%，照片被压到只剩明暗轮廓（亮壁纸下平均亮度 61/255）。
+    实测正文对比度 12.45:1、署名 8.44:1，离 4.5 有很大余量，于是把整页那层放松、
+    力气放到中间的局部光晕上——和浅色同一套思路。
+  */
+  --scrim-from: oklch(0.13 0.012 262 / 0.5);
+  --scrim-to: oklch(0.1 0.012 262 / 0.7);
+  --veil: oklch(0.08 0.01 262 / 0.4);
   --ink: oklch(0.97 0.003 260);
   --ink-muted: oklch(0.845 0.007 260);
   --glass: oklch(1 0 0 / 0.07);
