@@ -1,160 +1,53 @@
 /**
- * 设置的第二份存储。
+ * 走之前把设置落一次盘。
  *
- * 手机浏览器把标签页杀掉之后，`localStorage` 有时整片回到默认（夸克就是）。原因有两条，
- * 分开看：
+ * localStorage 的写入是引擎里批量异步刷盘的，进程被杀的时候最后一段会丢。页面进后台
+ * （`visibilitychange` → hidden）和真正卸载（`pagehide`）是 JS 能拿到的最后两个时机，
+ * 在这里写一次，能把「刚改完就切走」那一段的风险压下去。
  *
- *   A. 写入还没落盘进程就没了。引擎是批量异步写的，被杀就丢最后一段。
- *   B. 浏览器退出时清掉了这个站点的数据，那就一条不剩。
+ * 这里只做这一件事。曾经想过把设置再镜像一份进 cookie 扛「浏览器清站点数据」，
+ * 量完之后放弃了：
  *
- * 表现上 A 只会丢最近一次改动，B 是全部归位。用户报的是全部归位，所以按 B 兜。
+ *   - 一个 1.3 KB 的偏好 cookie，实测一次首屏会跟着 17 个同源请求走一遍（`/brand/*.png`、
+ *     `/cat.webp` 都算），合计 22 KB —— 为了几个字节的偏好，每次访问多传 22 KB
+ *   - cookie 会随每个请求发给服务器，等于把用户的外观设置变成服务端日志里的一行
+ *   - Safari 的 ITP 对脚本写入的存储（含 `document.cookie`）有 7 天上限，镜像并不能
+ *     比 localStorage 活得更久
+ *   - 而它想救的那个场景——无痕模式——cookie 同样是会话级的，根本救不了
  *
- * 网页侧能拿到的最耐久的一份存储是 cookie：由网络栈在设置时就写，而且各家「清除缓存」
- * 默认不动 cookie。所以这里把设置镜像一份进 cookie——读的时候 localStorage 空了就用它补，
- * 写的时候顺手同步过去。
- *
- * 不改任何组件的读写方式：包一层 `Storage.prototype.setItem`，现有的调用点一行不动。
+ * 结论：这不是一个值得付代价的兜底。真的被清空了（无痕、或者浏览器退出时清站点数据），
+ * 网页侧没有任何办法，那是浏览器的决定，不该由页面偷偷绕过。
  */
 
-const PREFIX = "yourtj-nav-"
-const COOKIE = "ytj-prefs"
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365
+const TOUCH_KEY = "yourtj-nav-touch"
 
-/**
- * 这些键可能很大，不塞进 cookie：自定义壁纸是 data URL，自定义站点 / 最近访问 / 搜索历史
- * 会随使用一直长，图标探测缓存也没有还原的价值。
- */
-const SKIP = new Set([
-  "yourtj-nav-wallpaper-custom",
-  "yourtj-nav-sites",
-  "yourtj-nav-recent",
-  "yourtj-nav-search-history",
-  "yourtj-nav-icon-miss",
-  "yourtj-nav-touch",
-])
-
-/** 单条超过这个长度的也不镜像——一条 4KB 的 cookie 会被整块顶掉。 */
-const MAX_VALUE = 512
-const MAX_COOKIE = 3000
-
-type Mirror = Record<string, string>
-
-function readMirror(): Mirror {
-  try {
-    const hit = document.cookie
-      .split("; ")
-      .find((item) => item.startsWith(`${COOKIE}=`))
-    if (!hit) return {}
-    const parsed: unknown = JSON.parse(decodeURIComponent(hit.slice(COOKIE.length + 1)))
-    if (!parsed || typeof parsed !== "object") return {}
-    const out: Mirror = {}
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (key.startsWith(PREFIX) && typeof value === "string") out[key] = value
-    }
-    return out
-  } catch {
-    return {}
-  }
-}
-
-function writeMirror(data: Mirror) {
-  try {
-    const encoded = encodeURIComponent(JSON.stringify(data))
-    if (encoded.length > MAX_COOKIE) return
-    document.cookie = `${COOKIE}=${encoded}; path=/; max-age=${COOKIE_MAX_AGE}; samesite=lax`
-  } catch {
-    // 隐私模式下 cookie 也会被拒，那就只剩 localStorage 这一份。
-  }
-}
+/** 一秒内只写一次：来回切标签页不值得反复弄脏存储。 */
+const MIN_INTERVAL = 1000
 
 export function installPersistence() {
   if (typeof window === "undefined") return
 
-  const proto = Storage.prototype
-  const setItem = proto.setItem
-  const removeItem = proto.removeItem
+  const storage = window.localStorage
+  const setItem = Storage.prototype.setItem
+  let last = 0
 
-  // ---- 1. 先把丢掉的那份补回来 ----
-  const mirror = readMirror()
-  for (const [key, value] of Object.entries(mirror)) {
+  const flush = () => {
+    const now = Date.now()
+    if (now - last < MIN_INTERVAL) return
+    last = now
     try {
-      if (window.localStorage.getItem(key) === null) setItem.call(window.localStorage, key, value)
-    } catch {
-      // 存不进去就算了，别把首屏拖垮。
-    }
-  }
-
-  // ---- 2. 写穿到 cookie ----
-  let pending: Mirror | null = null
-  let timer: number | null = null
-
-  const flushMirror = () => {
-    if (timer !== null) {
-      window.clearTimeout(timer)
-      timer = null
-    }
-    if (pending) {
-      writeMirror(pending)
-      pending = null
-    }
-  }
-
-  const scheduleMirror = () => {
-    if (timer !== null) return
-    timer = window.setTimeout(() => {
-      timer = null
-      flushMirror()
-    }, 120)
-  }
-
-  const sync = (key: string) => {
-    if (!key.startsWith(PREFIX) || SKIP.has(key)) return
-    let value: string | null = null
-    try {
-      value = window.localStorage.getItem(key)
-    } catch {
-      return
-    }
-    if (value !== null && value.length > MAX_VALUE) return
-
-    const next = pending ?? readMirror()
-    if (value === null) delete next[key]
-    else next[key] = value
-    pending = next
-    scheduleMirror()
-  }
-
-  proto.setItem = function (this: Storage, key: string, value: string) {
-    setItem.call(this, key, value)
-    if (this === window.localStorage) sync(key)
-  }
-
-  proto.removeItem = function (this: Storage, key: string) {
-    removeItem.call(this, key)
-    if (this === window.localStorage) sync(key)
-  }
-
-  /*
-    故意不拦 `clear()`：浏览器清站点数据走的是外部流程，根本不会调到 JS；能调到 `clear()`
-    的只有我们自己，而这个项目没有「全部清空」的入口（清最近访问走的是 `removeItem`，
-    已经同步过了）。拦下来只会把 cookie 里那份一起抹掉，等于自断后路。
-  */
-
-  // ---- 3. 走之前逼一次落盘 ----
-  //
-  // 同一个值重写一遍是空操作（规范里写明了 oldValue === value 时什么也不做），
-  // 所以拿一个每次都变的哨兵键把整块存储弄脏，引擎才会把积压的写入刷下去。
-  const flushStorage = () => {
-    flushMirror()
-    try {
-      setItem.call(window.localStorage, "yourtj-nav-touch", String(Date.now()))
+      /*
+        不能「把当前值重写一遍」：规范里 oldValue === value 时 setItem 什么也不做，
+        重写同值是空操作，根本不会弄脏存储。换一个每次都变的值才行。
+      */
+      setItem.call(storage, TOUCH_KEY, String(now))
     } catch {
       // 配额满或者隐私模式，忽略。
     }
   }
 
-  window.addEventListener("pagehide", flushStorage)
+  window.addEventListener("pagehide", flush)
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") flushStorage()
+    if (document.visibilityState === "hidden") flush()
   })
 }
