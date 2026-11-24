@@ -245,6 +245,13 @@ const official: Site[] = [
     url: "https://agi.tongji.edu.cn",
     mark: logo("https://agi.tongji.edu.cn/favicon.ico", "light"),
   },
+  {
+    id: "shsj",
+    title: "同济大学社会实践系统",
+    description: "社会实践报名、思政类课程报告提交",
+    url: "https://shsj.tongji.edu.cn",
+    mark: logo("https://1.tongji.edu.cn/static/images/logo.ico", "light"),
+  },
 ]
 
 const course: Site[] = [
